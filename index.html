@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#140A0E">
+<title>Wine Dex</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- design tokens (from the approved Claude Design canvas) ---------- */
+  :root {
+    --bg: #140A0E; --card: #22121A; --card-2: #3A1420; --line: #2E1A22; --line-2: #3A2129;
+    --text: #F5EDE6; --text-2: #E8DCD4; --muted: #A8908F; --muted-2: #C9B1B8;
+    --gold: #D9B36A; --wine: #B8304A; --ok: #9BC5B0; --warn: #F0A3B2;
+    --t-red: #B8304A; --t-white: #D9C27A; --t-rose: #E78AA0; --t-sparkling: #8FC9D6;
+    --t-dessert: #C98A3A; --t-fortified: #8A5AA0; --t-orange: #E0863A;
+    --nav-h: 92px; --serif: Fraunces, Georgia, serif; --sans: Manrope, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  h1, h2 { font-family: var(--serif); margin: 0; font-weight: 600; letter-spacing: -0.4px; }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  input::placeholder, textarea::placeholder { color: #7A6368; }
+  .hidden { display: none !important; }
+  main { max-width: 720px; margin: 0 auto; }
+  svg { flex: 0 0 auto; }
+
+  /* ---------- top ---------- */
+  .top { padding: calc(18px + env(safe-area-inset-top)) 20px 0; display: flex; align-items: flex-end; justify-content: space-between; }
+  .eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; display: block; }
+  .top h1 { font-size: 32px; line-height: 1; }
+  .avatar { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line-2); background: var(--card); color: var(--gold); font-family: var(--serif); font-size: 16px; font-weight: 600; display: grid; place-items: center; }
+  .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .demo-banner { margin: 14px 20px 0; background: rgba(217,179,106,.1); border: 1px solid rgba(217,179,106,.35); color: var(--gold); font-size: 12px; padding: 8px 12px; border-radius: 12px; text-align: center; }
+
+  /* ---------- stats, search, pills ---------- */
+  .stats { margin: 18px 20px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .stat b { font-family: var(--serif); font-size: 24px; font-weight: 600; }
+  .stat b.gold { color: var(--gold); }
+  .stat span { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .search { margin: 14px 20px 0; display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 0 14px; height: 46px; }
+  .search input { flex: 1; background: transparent; border: 0; outline: none; color: var(--text); font-size: 15px; min-width: 0; }
+  .pills { margin-top: 12px; padding: 0 20px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .pills::-webkit-scrollbar { display: none; }
+  .pill { flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 17px; border: 1px solid var(--line); background: var(--card); color: var(--muted-2); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+  .pill i { width: 9px; height: 9px; border-radius: 5px; display: inline-block; }
+  .pill.active { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+  .pill.type.active { background: var(--card-2); border-color: var(--gold); color: var(--text); }
+  .tabs { margin: 14px 20px 0; display: flex; gap: 8px; }
+  .tabs button { flex: 1; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--muted-2); font-weight: 700; font-size: 13px; }
+  .tabs button.active { background: var(--card-2); border-color: var(--gold); color: var(--text); }
+
+  /* ---------- grid cards ---------- */
+  .grid { padding: 16px 20px 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 560px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; text-align: left; color: var(--text); padding: 0; }
+  .card:active { transform: scale(.98); }
+  .card .photo { position: relative; height: 170px; background: var(--card-2) center/cover no-repeat; display: flex; align-items: flex-end; justify-content: center; }
+  .card .photo svg { margin-bottom: 0; }
+  .num { position: absolute; top: 10px; left: 10px; background: rgba(20,10,14,.75); color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 8px; border-radius: 8px; }
+  .dot { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; border-radius: 5px; box-shadow: 0 0 0 2px rgba(245,237,230,.6); }
+  .card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; }
+  .card .name { font-size: 14px; font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .scores { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+  .card .scores b { font-family: var(--serif); font-size: 20px; font-weight: 600; color: var(--gold); }
+  .card .scores span { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .empty { text-align: center; color: var(--muted); padding: 50px 24px; line-height: 1.6; font-size: 14px; }
+  .empty svg { display: block; margin: 0 auto 10px; }
+
+  /* ---------- rows (explore) ---------- */
+  .rows { padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 10px 10px; color: var(--text); text-align: left; width: 100%; }
+  .row .thumb { width: 54px; height: 70px; border-radius: 10px; background: var(--card-2) center/cover no-repeat; display: flex; align-items: flex-end; justify-content: center; flex: 0 0 auto; }
+  .row .mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .row .mid .name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .mid .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--gold); border-radius: 3px; }
+  .row .right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
+  .row .right b { font-family: var(--serif); font-size: 22px; font-weight: 600; line-height: 1; }
+  .row .right span { font-size: 11px; font-weight: 700; }
+  .match { margin: 18px 20px 0; border-radius: 20px; padding: 18px; background: var(--card); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+  .match .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
+  .match .head span { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .match .body { display: flex; align-items: center; gap: 16px; }
+  .ring { width: 84px; height: 84px; border-radius: 42px; display: grid; place-items: center; flex: 0 0 auto; }
+  .ring > div { width: 66px; height: 66px; border-radius: 33px; background: var(--card); display: grid; place-items: center; font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--gold); }
+  .match p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .match b { font-size: 15px; display: block; margin-bottom: 4px; color: var(--text); }
+  .section-head { margin: 22px 20px 0; display: flex; justify-content: space-between; align-items: baseline; }
+  .link { background: none; border: 0; color: var(--gold); padding: 0; font-size: 13px; font-weight: 700; }
+
+  /* ---------- detail ---------- */
+  .hero { position: relative; height: 420px; background: radial-gradient(circle at 50% 30%, #4A1A2A 0%, #22101A 60%, #140A0E 100%) center/cover no-repeat; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+  .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(20,10,14,0) 0%, #140A0E 100%); }
+  .hero .back { position: absolute; top: calc(16px + env(safe-area-inset-top)); left: 16px; width: 44px; height: 44px; border-radius: 22px; background: rgba(20,10,14,.6); color: var(--text); border: 0; display: grid; place-items: center; }
+  .hero .num { top: calc(26px + env(safe-area-inset-top)); left: auto; right: 16px; font-size: 12px; padding: 6px 10px; border-radius: 10px; }
+  .title-block { padding: 0 20px; margin-top: -24px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+  .badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; background: var(--card-2); color: #F5A9B8; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .badge i { width: 8px; height: 8px; border-radius: 4px; }
+  .title-block h2 { font-size: 30px; line-height: 1.1; margin-top: 4px; }
+  .meta { font-size: 14px; color: var(--muted); }
+  .compare { margin: 20px 20px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+  .box.mine { border-color: var(--gold); }
+  .box b { font-family: var(--serif); font-size: 44px; font-weight: 600; line-height: 1; }
+  .box.mine b { color: var(--gold); }
+  .box span { font-size: 12px; color: var(--muted); }
+  .panel { margin: 12px 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .panel .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
+  .panel .head span { color: var(--gold); font-size: 12px; }
+  .dist { display: flex; flex-direction: column; gap: 7px; }
+  .dist div { display: flex; align-items: center; gap: 10px; }
+  .dist .l { width: 22px; font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; }
+  .dist .bar { flex: 1; height: 8px; border-radius: 4px; }
+  .dist .n { width: 28px; font-size: 12px; color: var(--muted); text-align: right; }
+  .tagwrap { margin: 12px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .verdict { margin: 12px 20px 0; background: var(--card); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 0 12px 12px 0; font-size: 14px; color: var(--muted-2); line-height: 1.45; }
+  .notes { margin: 20px 20px 0; display: flex; flex-direction: column; gap: 10px; }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .note.mine { border-color: var(--gold); }
+  .note .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
+  .note .head small { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .note .head b { font-family: var(--serif); font-size: 18px; font-weight: 600; }
+  .note.mine .head b { color: var(--gold); }
+  .note p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2); white-space: pre-wrap; }
+  .note .extra { font-size: 12px; color: var(--muted); }
+  .note .tags .pill { height: 26px; font-size: 11px; padding: 0 10px; }
+
+  /* ---------- form ---------- */
+  .form-head { padding: calc(18px + env(safe-area-inset-top)) 20px 0; display: flex; align-items: center; justify-content: space-between; }
+  .form-head h2 { font-size: 20px; }
+  .form-head .num { position: static; background: none; padding: 0; font-size: 12px; }
+  .steps { margin: 16px 20px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .steps i { height: 4px; border-radius: 2px; background: var(--line-2); display: block; }
+  .steps i.on { background: var(--gold); }
+  .steps-l { margin: 8px 20px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .steps-l .on { color: var(--gold); }
+  .capture { margin: 18px 20px 0; height: 230px; border-radius: 20px; border: 1.5px dashed #5A3A44; background: var(--card) center/cover no-repeat; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; position: relative; overflow: hidden; }
+  .capture .cam { width: 64px; height: 64px; border-radius: 32px; background: var(--wine); display: grid; place-items: center; color: #fff; }
+  .capture b { font-size: 15px; }
+  .capture small { font-size: 12px; color: var(--muted); }
+  .capture input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+  .capture.has > :not(input) { display: none; }
+  .capture .retake { position: absolute; right: 10px; bottom: 10px; background: rgba(20,10,14,.75); color: var(--text); border: 0; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 700; display: none; }
+  .capture.has .retake { display: block; pointer-events: none; }
+  .fields { margin: 22px 20px 0; display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field input, .field textarea { height: 50px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 0 14px; font-size: 15px; min-width: 0; width: 100%; outline: none; }
+  .field input:focus, .field textarea:focus { border-color: var(--gold); }
+  .field textarea { height: 110px; padding: 12px 14px; resize: none; }
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .rating { margin: 24px 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .rating .label { align-self: flex-start; }
+  .stars { display: flex; gap: 4px; }
+  .stars button { width: 52px; height: 52px; border: 0; background: none; padding: 0; color: #4A323A; }
+  .stars button.on { color: var(--gold); }
+  .stars button.half svg path { fill: url(#halfGrad); }
+  .rating .val { display: flex; align-items: baseline; gap: 8px; }
+  .rating .val b { font-family: var(--serif); font-size: 40px; font-weight: 600; color: var(--gold); line-height: 1; }
+  .rating .val span { font-size: 13px; color: var(--muted); }
+  .half-toggle { background: none; border: 1px solid var(--line-2); color: var(--muted-2); border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 700; }
+  .half-toggle.on { border-color: var(--gold); color: var(--gold); }
+  .btn { margin: 26px 20px 0; height: 56px; border-radius: 16px; background: var(--wine); color: #fff; border: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 700; width: calc(100% - 40px); box-shadow: 0 10px 24px rgba(184,48,74,.35); }
+  .btn:disabled { opacity: .6; }
+  .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); box-shadow: none; margin-top: 12px; }
+
+  /* ---------- auth ---------- */
+  .auth { max-width: 380px; margin: 60px auto 0; padding: 0 24px; text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .auth h2 { font-size: 30px; }
+  .auth p { color: var(--muted); line-height: 1.5; margin: 0; font-size: 14px; }
+  .auth .field { width: 100%; text-align: left; }
+  .auth .btn { margin: 6px 0 0; width: 100%; }
+
+  /* ---------- nav & toast ---------- */
+  nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 10px 24px calc(28px + env(safe-area-inset-bottom)); background: rgba(20,10,14,.92); backdrop-filter: blur(10px); border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; z-index: 10; max-width: 720px; margin: 0 auto; }
+  nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: 0; color: var(--muted); font-size: 11px; font-weight: 700; width: 64px; height: 50px; }
+  nav button.active { color: var(--gold); }
+  nav button.fab { width: 60px; height: 60px; border-radius: 30px; background: var(--wine); color: #fff; box-shadow: 0 10px 24px rgba(184,48,74,.45); margin-top: -34px; }
+  .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 20px); transform: translateX(-50%); background: #0B0507; color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 14px; z-index: 50; box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: 90vw; display: none; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="halfGrad"><stop offset="50%" stop-color="#D9B36A"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs></svg>
+
+<main>
+  <!-- ===== Auth ===== -->
+  <section id="view-auth" class="auth hidden">
+    <svg width="72" height="72" viewBox="0 0 128 128" aria-hidden="true"><rect width="128" height="128" rx="28" fill="#22121A"/><circle cx="64" cy="64" r="44" fill="#B8304A"/><circle cx="64" cy="64" r="34" fill="#22121A"/><circle cx="64" cy="64" r="26" fill="#D9B36A"/><path d="M52 42h24l-2 20c-1 6-5 10-10 10s-9-4-10-10z" fill="#B8304A"/><rect x="61" y="72" width="6" height="12" fill="#B8304A"/><rect x="52" y="84" width="24" height="4" rx="2" fill="#B8304A"/></svg>
+    <h2>Welcome to Wine Dex</h2>
+    <p>Snap the bottle, write what you think, and see how your taste compares with everyone else's.</p>
+    <div class="field"><label class="label" for="authEmail">Email</label><input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
+    <button class="btn" id="authBtn">Send me a login link</button>
+    <p id="authMsg"></p>
+  </section>
+
+  <!-- ===== Cellar / Explore ===== -->
+  <section id="view-list" class="hidden">
+    <div class="top">
+      <div><span class="eyebrow" id="greet">Good evening</span><h1 id="listTitle">My cellar</h1></div>
+      <button class="avatar" id="userChip" aria-label="Account">W</button>
+    </div>
+    <div id="demoBanner" class="demo-banner hidden">Demo mode: Supabase is not configured, entries are saved only in this browser.</div>
+
+    <!-- cellar -->
+    <div id="cellarPane">
+      <div class="stats">
+        <div class="stat"><b id="stCount">0</b><span>wines logged</span></div>
+        <div class="stat"><b class="gold" id="stAvg">–</b><span>my average</span></div>
+        <div class="stat"><b id="stCountries">0</b><span>countries</span></div>
+      </div>
+      <div class="search">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A8908F" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="search" placeholder="Search wine, producer, grape" aria-label="Search">
+      </div>
+      <div class="pills" id="typeFilters"></div>
+      <div id="grid" class="grid"></div>
+      <div id="emptyState" class="empty hidden">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5A3A44" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l1 7a5 5 0 0 1-10 0z"/><path d="M12 15v5M8 21h8"/></svg>
+        No wines in your cellar yet.<br>Tap <b>+</b> to log your first bottle.
+      </div>
+    </div>
+
+    <!-- explore -->
+    <div id="explorePane" class="hidden">
+      <div class="match" id="matchCard"></div>
+      <div class="section-head"><span class="label">Trending</span><span class="label" id="exploreCount"></span></div>
+      <div class="rows" id="rows"></div>
+      <div id="emptyExplore" class="empty hidden">Nobody has logged a wine yet. Be the first.</div>
+    </div>
+  </section>
+
+  <!-- ===== Detail ===== -->
+  <section id="view-detail" class="hidden"></section>
+
+  <!-- ===== Log ===== -->
+  <section id="view-add" class="hidden">
+    <form id="addForm">
+      <div class="form-head"><button type="button" class="link" id="cancelAdd" style="color:var(--muted)">Cancel</button><h2>Log a wine</h2><span class="num" id="nextNum">#001</span></div>
+      <div class="steps"><i class="on" id="s1"></i><i id="s2"></i><i id="s3"></i></div>
+      <div class="steps-l label"><span class="on">Photo</span><span id="sl2">Wine</span><span id="sl3">My note</span></div>
+
+      <div class="capture" id="photoBox">
+        <div class="cam"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
+        <b>Snap the label</b><small>Photo is saved with your note</small>
+        <span class="retake">Tap to retake</span>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="Take a photo">
+      </div>
+
+      <div class="fields">
+        <div class="field"><label class="label" for="fName">Wine name</label><input id="fName" required placeholder="e.g. Bin 389 Cabernet Shiraz"></div>
+        <div class="two">
+          <div class="field"><label class="label" for="fProducer">Producer</label><input id="fProducer" placeholder="Penfolds"></div>
+          <div class="field"><label class="label" for="fVintage">Vintage</label><input id="fVintage" type="number" inputmode="numeric" min="1900" max="2100" placeholder="2021"></div>
+        </div>
+        <div class="field"><span class="label">Type</span><div class="tags" id="typePicker"></div></div>
+        <div class="two">
+          <div class="field"><label class="label" for="fGrape">Grape</label><input id="fGrape" placeholder="Shiraz"></div>
+          <div class="field"><label class="label" for="fCountry">Country</label><input id="fCountry" placeholder="Australia"></div>
+        </div>
+        <div class="field"><label class="label" for="fRegion">Region</label><input id="fRegion" placeholder="Barossa Valley"></div>
+      </div>
+
+      <div class="rating">
+        <span class="label">My rating</span>
+        <div class="stars" id="stars"></div>
+        <div class="val"><b id="ratingOut">4.0</b><span id="ratingLabel">Really good</span></div>
+        <button type="button" class="half-toggle" id="halfToggle">+ half star</button>
+      </div>
+
+      <div class="fields">
+        <div class="field"><span class="label">What do you taste?</span><div class="tags" id="tagPicker"></div></div>
+        <div class="field"><label class="label" for="fNotes">My note</label><textarea id="fNotes" placeholder="Smell, taste, finish. What did you pair it with? Would you buy again?"></textarea></div>
+        <div class="two">
+          <div class="field"><label class="label" for="fPrice">Price (A$)</label><input id="fPrice" type="number" inputmode="decimal" step="0.01" placeholder="95"></div>
+          <div class="field"><label class="label" for="fPlace">Where</label><input id="fPlace" placeholder="Home"></div>
+        </div>
+        <div class="field"><label class="label" for="fDate">Tasted on</label><input id="fDate" type="date"></div>
+      </div>
+
+      <button class="btn" id="saveBtn" type="submit"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>Save to my cellar</button>
+      <div style="height:30px"></div>
+    </form>
+  </section>
+</main>
+
+<nav id="nav">
+  <button id="navMine" class="active"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l1 7a5 5 0 0 1-10 0z"/><path d="M12 15v5M8 21h8"/></svg>Cellar</button>
+  <button id="navAdd" class="fab" aria-label="Log a wine"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button id="navAll"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Explore</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+/* =====================================================================
+   Wine Dex – single-page app
+   Sections: helpers · data stores (Supabase / local demo) · views · events
+   ===================================================================== */
+
+// ---------- helpers ----------
+const $ = (id) => document.getElementById(id);
+const TYPES = { red: "Red", white: "White", rose: "Rosé", sparkling: "Sparkling", dessert: "Dessert", fortified: "Fortified", orange: "Orange" };
+const TAGS = ["Dark fruit", "Red fruit", "Citrus", "Stone fruit", "Floral", "Oak", "Mocha", "Spice", "Earthy", "Mineral", "Fresh", "Sweet", "Firm tannin", "Long finish"];
+const RATING_LABEL = { 1: "Not for me", 1.5: "Not for me", 2: "Meh", 2.5: "Okay", 3: "Good", 3.5: "Good", 4: "Really good", 4.5: "Really good", 5: "Outstanding" };
+const typeColor = (t) => getComputedStyle(document.documentElement).getPropertyValue(`--t-${t}`).trim() || "#999";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(16).slice(2));
+const fmt1 = (n) => (n == null ? "–" : Number(n).toFixed(1));
+const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+const fmtDate = (d) => (d ? new Date(d + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
+const bottleSvg = (w, h, fill) => `<svg aria-hidden="true" width="${w}" height="${h}" viewBox="0 0 46 120"><path d="M17 0h12v22c0 6 9 10 9 24v66a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8V46c0-14 9-18 9-24z" fill="${fill}"/><rect x="12" y="58" width="22" height="30" rx="2" fill="#F5EDE6" opacity="0.9"/></svg>`;
+const starSvg = `<svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2.8l2.9 6 6.6.9-4.8 4.6 1.2 6.6L12 17.8 6.1 20.9l1.2-6.6L2.5 9.7l6.6-.9z"/></svg>`;
+let toastTimer;
+function toast(msg) { const el = $("toast"); el.textContent = msg; el.style.display = "block"; clearTimeout(toastTimer); toastTimer = setTimeout(() => (el.style.display = "none"), 2600); }
+
+// Shrink a photo in the browser before upload (max 1200 px, JPEG) so uploads are fast on mobile data.
+function resizeImage(file, max = 1200) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not process image"))), "image/jpeg", 0.82);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+const blobToDataUrl = (b) => new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
+
+// ---------- data store: Supabase ----------
+const cfg = window.WINEDEX_CONFIG || {};
+const configured = cfg.SUPABASE_URL && !cfg.SUPABASE_URL.includes("YOUR-PROJECT") && cfg.SUPABASE_ANON_KEY && !cfg.SUPABASE_ANON_KEY.includes("YOUR-ANON");
+
+const supabaseStore = {
+  client: null,
+  init() { this.client = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY); },
+  async user() { const { data } = await this.client.auth.getUser(); return data.user; },
+  async signIn(email) {
+    const { error } = await this.client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } });
+    if (error) throw error;
+  },
+  async signOut() { await this.client.auth.signOut(); },
+  onAuth(cb) { this.client.auth.onAuthStateChange(() => cb()); },
+  // Everything the list views need: wines + all tastings (for averages, photos and the taste match).
+  async listAll() {
+    const [{ data: wines, error: e1 }, { data: tastings, error: e2 }] = await Promise.all([
+      this.client.from("wines").select("*").order("created_at", { ascending: false }),
+      this.client.from("tastings").select("id, wine_id, user_id, rating, photo_url, tags, created_at").order("created_at", { ascending: true }),
+    ]);
+    if (e1) throw e1; if (e2) throw e2;
+    return { wines, tastings };
+  },
+  async getWine(id) { const { data, error } = await this.client.from("wines").select("*").eq("id", id).single(); if (error) throw error; return data; },
+  async getTastings(wineId) { const { data, error } = await this.client.from("tastings").select("*").eq("wine_id", wineId).order("created_at", { ascending: false }); if (error) throw error; return data; },
+  // Reuse an existing wine with the same name/producer/vintage, otherwise create it.
+  async findOrCreateWine(w) {
+    const me = await this.user();
+    let q = this.client.from("wines").select("id").ilike("name", w.name.trim());
+    q = w.producer ? q.ilike("producer", w.producer.trim()) : q.is("producer", null);
+    q = w.vintage ? q.eq("vintage", w.vintage) : q.is("vintage", null);
+    const { data: found } = await q.limit(1);
+    if (found && found.length) return found[0].id;
+    const { data, error } = await this.client.from("wines").insert({ ...w, created_by: me.id }).select("id").single();
+    if (error) throw error; return data.id;
+  },
+  async uploadPhoto(blob) {
+    const me = await this.user();
+    const path = `${me.id}/${uid()}.jpg`;
+    const { error } = await this.client.storage.from(cfg.PHOTO_BUCKET).upload(path, blob, { contentType: "image/jpeg" });
+    if (error) throw error;
+    return this.client.storage.from(cfg.PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+  },
+  async addTasting(t) { const me = await this.user(); const { error } = await this.client.from("tastings").insert({ ...t, user_id: me.id, taster_name: tasterName() }); if (error) throw error; },
+  async deleteTasting(id) { const { error } = await this.client.from("tastings").delete().eq("id", id); if (error) throw error; },
+};
+
+// ---------- data store: local demo (no backend) ----------
+// Same interface as supabaseStore, but keeps everything in localStorage, so the app can be tried before Supabase exists.
+const localStore = {
+  key: "winedex-demo",
+  load() { try { return JSON.parse(localStorage.getItem(this.key)) || { wines: [], tastings: [] }; } catch { return { wines: [], tastings: [] }; } },
+  save(d) { localStorage.setItem(this.key, JSON.stringify(d)); },
+  init() {},
+  async user() { return { id: "demo-user", email: "demo@local" }; },
+  async signIn() {}, async signOut() {}, onAuth() {},
+  async listAll() { const d = this.load(); return { wines: d.wines.slice().reverse(), tastings: d.tastings }; },
+  async getWine(id) { return this.load().wines.find((w) => w.id === id); },
+  async getTastings(wineId) { return this.load().tastings.filter((t) => t.wine_id === wineId).reverse(); },
+  async findOrCreateWine(w) {
+    const d = this.load();
+    const same = d.wines.find((x) => x.name.toLowerCase() === w.name.toLowerCase() && (x.producer || "").toLowerCase() === (w.producer || "").toLowerCase() && (x.vintage || null) === (w.vintage || null));
+    if (same) return same.id;
+    const wine = { ...w, id: uid(), created_by: "demo-user", created_at: new Date().toISOString() };
+    d.wines.push(wine); this.save(d); return wine.id;
+  },
+  async uploadPhoto(blob) { return blobToDataUrl(blob); },
+  async addTasting(t) { const d = this.load(); d.tastings.push({ ...t, id: uid(), user_id: "demo-user", taster_name: tasterName(), created_at: new Date().toISOString() }); this.save(d); },
+  async deleteTasting(id) { const d = this.load(); d.tastings = d.tastings.filter((t) => t.id !== id); this.save(d); },
+};
+
+const store = configured ? supabaseStore : localStore;
+store.init();
+
+// The display name shown next to your notes for other people (kept in this browser).
+function tasterName() {
+  let n = localStorage.getItem("winedex-name");
+  if (!n) { n = (prompt("What name should other tasters see next to your notes?") || "Anonymous").trim().slice(0, 40) || "Anonymous"; localStorage.setItem("winedex-name", n); }
+  return n;
+}
+
+// ---------- app state ----------
+const state = { user: null, wines: [], tastings: [], tab: "mine", query: "", typeFilter: "all", photoBlob: null, type: "red", rating: 4, tags: new Set() };
+
+function show(view) {
+  ["auth", "list", "detail", "add"].forEach((v) => $("view-" + v).classList.toggle("hidden", v !== view));
+  $("nav").classList.toggle("hidden", view === "auth" || view === "add");
+  $("navMine").classList.toggle("active", view === "list" && state.tab === "mine");
+  $("navAll").classList.toggle("active", view === "list" && state.tab === "all");
+  window.scrollTo(0, 0);
+}
+
+// Build the per-wine summary used by the grid, the rows and the stats.
+function enrich() {
+  const byWine = {};
+  state.tastings.forEach((t) => { (byWine[t.wine_id] = byWine[t.wine_id] || []).push(t); });
+  return state.wines.map((w) => {
+    const ts = byWine[w.id] || [];
+    const mine = ts.filter((t) => t.user_id === state.user.id);
+    const others = ts.filter((t) => t.user_id !== state.user.id);
+    return {
+      ...w, ts, mine, others,
+      myAvg: avg(mine.map((t) => Number(t.rating))), allAvg: avg(ts.map((t) => Number(t.rating))), othersAvg: avg(others.map((t) => Number(t.rating))),
+      tasters: new Set(ts.map((t) => t.user_id)).size,
+      photo: (mine.find((t) => t.photo_url) || ts.find((t) => t.photo_url) || {}).photo_url || "",
+      firstMine: mine.length ? mine[0].created_at : null,
+    };
+  });
+}
+function numbers(list) { // Pokédex numbers follow the order you logged wines (oldest = #001)
+  const ordered = list.filter((w) => w.mine.length).sort((a, b) => new Date(a.firstMine) - new Date(b.firstMine));
+  return Object.fromEntries(ordered.map((w, i) => [w.id, "#" + String(i + 1).padStart(3, "0")]));
+}
+
+// ---------- list views ----------
+async function loadAll() {
+  try { const d = await store.listAll(); state.wines = d.wines; state.tastings = d.tastings; }
+  catch (e) { console.error(e); toast("Could not load wines: " + e.message); state.wines = []; state.tastings = []; }
+  renderList();
+}
+function renderTypeFilters() {
+  const all = [["all", "All", null], ...Object.entries(TYPES).map(([k, v]) => [k, v, typeColor(k)])];
+  $("typeFilters").innerHTML = all.map(([k, v, c]) => `<button type="button" class="pill ${c ? "type" : ""} ${state.typeFilter === k ? "active" : ""}" data-f="${k}">${c ? `<i style="background:${c}"></i>` : ""}${v}</button>`).join("");
+  document.querySelectorAll("#typeFilters .pill").forEach((b) => b.onclick = () => { state.typeFilter = b.dataset.f; renderList(); });
+}
+function renderList() {
+  const h = new Date().getHours();
+  $("greet").textContent = (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + (state.user && configured ? ", " + state.user.email.split("@")[0] : "");
+  const list = enrich();
+  $("cellarPane").classList.toggle("hidden", state.tab !== "mine");
+  $("explorePane").classList.toggle("hidden", state.tab !== "all");
+  $("listTitle").textContent = state.tab === "mine" ? "My cellar" : "Explore";
+  if (state.tab === "mine") renderCellar(list); else renderExplore(list);
+}
+function renderCellar(list) {
+  const mine = list.filter((w) => w.mine.length);
+  $("stCount").textContent = mine.length;
+  $("stAvg").textContent = fmt1(avg(mine.map((w) => w.myAvg)));
+  $("stCountries").textContent = new Set(mine.map((w) => (w.country || "").trim().toLowerCase()).filter(Boolean)).size;
+  renderTypeFilters();
+  const nums = numbers(list);
+  const q = state.query.toLowerCase();
+  let shown = mine.filter((w) => state.typeFilter === "all" || w.wine_type === state.typeFilter);
+  if (q) shown = shown.filter((w) => [w.name, w.producer, w.grape, w.region, w.country].join(" ").toLowerCase().includes(q));
+  shown.sort((a, b) => new Date(b.firstMine) - new Date(a.firstMine));
+  $("emptyState").classList.toggle("hidden", shown.length > 0);
+  $("grid").innerHTML = shown.map((w) => `<button type="button" class="card" data-id="${w.id}">
+      <div class="photo" style="${w.photo ? `background-image:url('${w.photo}')` : ""}">
+        ${w.photo ? "" : bottleSvg(46, 120, "#1B0C10")}
+        <span class="num">${nums[w.id]}</span><span class="dot" style="background:${typeColor(w.wine_type)}"></span>
+      </div>
+      <div class="body"><span class="name">${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · ") || TYPES[w.wine_type])}</span>
+        <div class="scores"><b>${fmt1(w.myAvg)}</b><span>all ${fmt1(w.allAvg)} · ${w.ts.length}</span></div></div>
+    </button>`).join("");
+}
+function renderExplore(list) {
+  const withNotes = list.filter((w) => w.ts.length);
+  // Taste match: on wines both you and others rated, how often you land within half a star of the crowd.
+  const shared = withNotes.filter((w) => w.myAvg != null && w.othersAvg != null);
+  const agree = shared.filter((w) => Math.abs(w.myAvg - w.othersAvg) <= 0.5).length;
+  const pct = shared.length ? Math.round((agree / shared.length) * 100) : null;
+  const diffBy = (type) => { const s = shared.filter((w) => w.wine_type === type); return s.length ? avg(s.map((w) => w.myAvg - w.othersAvg)) : null; };
+  const parts = Object.keys(TYPES).map((t) => [t, diffBy(t)]).filter(([, d]) => d != null).map(([t, d]) => `${TYPES[t].toLowerCase()}s ${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(1)}`);
+  $("matchCard").innerHTML = `<div class="head">Your taste vs everyone<span>${shared.length} shared wine${shared.length === 1 ? "" : "s"}</span></div>
+    <div class="body"><div class="ring" style="background: conic-gradient(var(--gold) 0 ${pct ?? 0}%, var(--line-2) ${pct ?? 0}% 100%)"><div>${pct == null ? "–" : pct + "%"}</div></div>
+    <div><b>${pct == null ? "No shared wines yet" : pct >= 70 ? "You agree with the crowd" : pct >= 40 ? "You have your own taste" : "You go against the crowd"}</b>
+    <p>${pct == null ? "Log a wine that someone else has also logged to see how your palate compares." : parts.length ? "Compared with the average you rate " + parts.join(", ") + "." : "Within half a star of the crowd on " + agree + " of " + shared.length + " wines."}</p></div></div>`;
+  const rows = withNotes.slice().sort((a, b) => b.ts.length - a.ts.length || new Date(b.created_at) - new Date(a.created_at));
+  $("exploreCount").textContent = rows.length + " wine" + (rows.length === 1 ? "" : "s");
+  $("emptyExplore").classList.toggle("hidden", rows.length > 0);
+  const max = Math.max(1, ...rows.map((w) => w.tasters));
+  $("rows").innerHTML = rows.map((w) => {
+    const delta = w.myAvg == null || w.othersAvg == null ? null : w.myAvg - w.othersAvg;
+    return `<button type="button" class="row" data-id="${w.id}">
+      <div class="thumb" style="${w.photo ? `background-image:url('${w.photo}')` : ""}">${w.photo ? "" : bottleSvg(20, 56, "#1B0C10")}</div>
+      <div class="mid"><span class="name">${esc(w.name)}</span><span class="sub">${esc([w.producer, TYPES[w.wine_type], w.vintage].filter(Boolean).join(" · "))}</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px"><div class="bar" style="width:90px"><i style="width:${Math.round((w.tasters / max) * 100)}%"></i></div><span class="sub">${w.tasters} taster${w.tasters === 1 ? "" : "s"}</span></div></div>
+      <div class="right"><b>${fmt1(w.allAvg)}</b><span style="color:${delta == null ? "var(--muted)" : delta >= 0 ? "var(--ok)" : "var(--warn)"}">${delta == null ? (w.myAvg == null ? "not tried" : "only you") : "you " + (delta >= 0 ? "+" : "−") + Math.abs(delta).toFixed(1)}</span></div>
+    </button>`;
+  }).join("");
+}
+
+// ---------- detail view ----------
+async function openDetail(id) {
+  show("detail");
+  $("view-detail").innerHTML = `<p class="meta" style="padding:80px 20px">Loading…</p>`;
+  try {
+    const [w, ts] = await Promise.all([store.getWine(id), store.getTastings(id)]);
+    const me = state.user.id;
+    const myTs = ts.filter((t) => t.user_id === me), others = ts.filter((t) => t.user_id !== me);
+    const myAvg = avg(myTs.map((t) => Number(t.rating))), allAvg = avg(ts.map((t) => Number(t.rating))), othersAvg = avg(others.map((t) => Number(t.rating)));
+    const photo = (myTs.find((t) => t.photo_url) || ts.find((t) => t.photo_url) || {}).photo_url;
+    const nums = numbers(enrich());
+    const tasters = new Set(ts.map((t) => t.user_id)).size;
+    // rating distribution 5..1
+    const counts = [5, 4, 3, 2, 1].map((s) => [s, ts.filter((t) => Math.round(Number(t.rating)) === s).length]);
+    const maxC = Math.max(1, ...counts.map((c) => c[1]));
+    // tag frequency
+    const tagCount = {};
+    ts.forEach((t) => (t.tags || []).forEach((g) => (tagCount[g] = (tagCount[g] || 0) + 1)));
+    const tags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    let verdict = "You are the first to log this wine — your note sets the benchmark.";
+    const n = others.length, s = n > 1 ? "s" : "";
+    if (myAvg != null && othersAvg != null) {
+      const d = myAvg - othersAvg;
+      verdict = Math.abs(d) < 0.3 ? `You and the other ${n} taster${s} agree on this one.` : d > 0 ? `You like it more than others do (+${d.toFixed(1)} vs ${n} other taster${s}).` : `Others enjoyed it more than you did (${d.toFixed(1)} vs ${n} other taster${s}).`;
+    } else if (myAvg == null && othersAvg != null) verdict = `${n} taster${s} logged this wine. Add your own note to compare.`;
+    const delta = myAvg != null && othersAvg != null ? myAvg - othersAvg : null;
+
+    const note = (t) => { const mine = t.user_id === me; return `<div class="note ${mine ? "mine" : ""}">
+      <div class="head"><span>${mine ? "You" : esc(t.taster_name)} <small>· ${fmtDate(t.tasted_at)}${t.place ? " · " + esc(t.place) : ""}</small></span><b>${fmt1(t.rating)}</b></div>
+      ${t.notes ? `<p>${esc(t.notes)}</p>` : `<p style="color:var(--muted)">No note.</p>`}
+      ${(t.tags || []).length ? `<div class="tags">${t.tags.map((g) => `<span class="pill">${esc(g)}</span>`).join("")}</div>` : ""}
+      ${t.price ? `<span class="extra">A$${Number(t.price).toFixed(2)}</span>` : ""}
+      ${mine ? `<button type="button" class="link" data-del="${t.id}" style="align-self:flex-start">Delete this note</button>` : ""}
+    </div>`; };
+
+    $("view-detail").innerHTML = `
+      <div class="hero">${photo ? `<img src="${photo}" alt="">` : bottleSvg(120, 340, "#1B0C10")}<div class="fade"></div>
+        <button type="button" class="back" id="backBtn" aria-label="Back"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        ${nums[w.id] ? `<span class="num">${nums[w.id]}</span>` : ""}</div>
+      <div class="title-block">
+        <span class="badge"><i style="background:${typeColor(w.wine_type)}"></i>${TYPES[w.wine_type]}${w.grape ? " · " + esc(w.grape) : ""}</span>
+        <h2>${esc(w.name)}</h2>
+        <span class="meta">${esc([w.producer, w.vintage, [w.region, w.country].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span>
+      </div>
+      <div class="compare">
+        <div class="box mine"><span class="label">My rating</span><b>${fmt1(myAvg)}</b><span>${myTs.length} note${myTs.length === 1 ? "" : "s"}${myTs.length ? " · last " + fmtDate(myTs[0].tasted_at) : ""}</span></div>
+        <div class="box"><span class="label">Everyone</span><b>${fmt1(allAvg)}</b><span>${ts.length} note${ts.length === 1 ? "" : "s"} · ${tasters} taster${tasters === 1 ? "" : "s"}</span></div>
+      </div>
+      ${ts.length ? `<div class="panel"><div class="head">How everyone rated it${delta != null ? `<span>You: ${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(1)} ${delta >= 0 ? "above" : "below"}</span>` : ""}</div>
+        <div class="dist">${counts.map(([s, c]) => `<div><span class="l">${s}</span><div class="bar"><i style="width:${Math.round((c / maxC) * 100)}%;background:${s >= 4 ? "var(--gold)" : "#6E4A56"}"></i></div><span class="n">${c}</span></div>`).join("")}</div></div>` : ""}
+      ${tags.length ? `<div class="tagwrap"><span class="label">What people taste</span><div class="tags">${tags.map(([g, c]) => `<span class="pill">${esc(g)} · ${c}</span>`).join("")}</div></div>` : ""}
+      <div class="verdict">${verdict}</div>
+      <div class="notes"><div class="section-head" style="margin:0"><span class="label">Tasting notes</span><button type="button" class="link" id="logAgain">+ Log again</button></div>
+        ${ts.length ? ts.map(note).join("") : `<p class="meta">No notes yet.</p>`}</div>
+      <div style="height:30px"></div>`;
+
+    $("backBtn").onclick = () => { show("list"); loadAll(); };
+    $("logAgain").onclick = () => openAdd(w);
+    document.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+      if (!confirm("Delete this note?")) return;
+      try { await store.deleteTasting(b.dataset.del); toast("Note deleted"); openDetail(id); } catch (e) { toast(e.message); }
+    });
+  } catch (e) { console.error(e); $("view-detail").innerHTML = `<p style="padding:80px 20px">${esc(e.message)}</p><button type="button" class="btn ghost" id="backBtn">Back</button>`; $("backBtn").onclick = () => show("list"); }
+}
+
+// ---------- log view ----------
+function renderTypePicker() {
+  $("typePicker").innerHTML = Object.entries(TYPES).map(([k, v]) => `<button type="button" class="pill type ${k === state.type ? "active" : ""}" data-type="${k}"><i style="background:${typeColor(k)}"></i>${v}</button>`).join("");
+  document.querySelectorAll("#typePicker .pill").forEach((b) => b.onclick = () => { state.type = b.dataset.type; renderTypePicker(); });
+}
+function renderTagPicker() {
+  $("tagPicker").innerHTML = TAGS.map((g) => `<button type="button" class="pill ${state.tags.has(g) ? "active" : ""}" data-tag="${g}">${g}</button>`).join("");
+  document.querySelectorAll("#tagPicker .pill").forEach((b) => b.onclick = () => { const g = b.dataset.tag; state.tags.has(g) ? state.tags.delete(g) : state.tags.add(g); renderTagPicker(); });
+}
+function renderStars() {
+  const r = state.rating, half = r % 1 !== 0;
+  $("stars").innerHTML = [1, 2, 3, 4, 5].map((n) => `<button type="button" data-n="${n}" aria-label="${n} star${n > 1 ? "s" : ""}" class="${n <= Math.floor(r) ? "on" : half && n === Math.ceil(r) ? "half" : ""}">${starSvg}</button>`).join("");
+  document.querySelectorAll("#stars button").forEach((b) => b.onclick = () => { state.rating = Number(b.dataset.n); renderStars(); });
+  $("halfToggle").classList.toggle("on", half);
+  $("halfToggle").textContent = half ? "− half star" : "+ half star";
+  $("ratingOut").textContent = r.toFixed(1);
+  $("ratingLabel").textContent = RATING_LABEL[r] || "";
+  const filled = state.photoBlob, named = $("fName").value.trim();
+  $("s2").classList.toggle("on", !!filled); $("sl2").classList.toggle("on", !!filled);
+  $("s3").classList.toggle("on", !!named); $("sl3").classList.toggle("on", !!named);
+}
+$("halfToggle").onclick = () => { state.rating = state.rating % 1 ? Math.floor(state.rating) : Math.min(5, state.rating + 0.5); if (state.rating > 5) state.rating = 5; renderStars(); };
+function openAdd(prefill) {
+  $("addForm").reset();
+  state.photoBlob = null; state.type = (prefill && prefill.wine_type) || "red"; state.rating = 4; state.tags = new Set();
+  $("photoBox").style.backgroundImage = ""; $("photoBox").classList.remove("has");
+  $("fDate").value = new Date().toISOString().slice(0, 10);
+  $("nextNum").textContent = "#" + String(Object.keys(numbers(enrich())).length + 1).padStart(3, "0");
+  if (prefill) { $("fName").value = prefill.name || ""; $("fProducer").value = prefill.producer || ""; $("fVintage").value = prefill.vintage || ""; $("fGrape").value = prefill.grape || ""; $("fCountry").value = prefill.country || ""; $("fRegion").value = prefill.region || ""; }
+  renderTypePicker(); renderTagPicker(); renderStars();
+  show("add");
+}
+$("photoInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    state.photoBlob = await resizeImage(f);
+    $("photoBox").style.backgroundImage = `url('${URL.createObjectURL(state.photoBlob)}')`;
+    $("photoBox").classList.add("has");
+    renderStars();
+  } catch (err) { toast("Could not read that photo"); }
+});
+$("fName").addEventListener("input", renderStars);
+$("cancelAdd").onclick = () => show("list");
+$("addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("saveBtn"); btn.disabled = true;
+  try {
+    const wine = {
+      name: $("fName").value.trim(), producer: $("fProducer").value.trim() || null,
+      vintage: $("fVintage").value ? Number($("fVintage").value) : null, wine_type: state.type,
+      grape: $("fGrape").value.trim() || null, country: $("fCountry").value.trim() || null, region: $("fRegion").value.trim() || null,
+    };
+    const wineId = await store.findOrCreateWine(wine);
+    const photo_url = state.photoBlob ? await store.uploadPhoto(state.photoBlob) : null;
+    await store.addTasting({
+      wine_id: wineId, rating: state.rating, notes: $("fNotes").value.trim() || null, photo_url, tags: [...state.tags],
+      price: $("fPrice").value ? Number($("fPrice").value) : null, place: $("fPlace").value.trim() || null, tasted_at: $("fDate").value || null,
+    });
+    toast("Saved to your cellar");
+    state.tab = "mine"; show("list"); await loadAll();
+  } catch (err) { console.error(err); toast("Could not save: " + err.message); }
+  finally { btn.disabled = false; }
+});
+
+// ---------- navigation & auth ----------
+function setTab(t) { state.tab = t; show("list"); renderList(); }
+$("navMine").onclick = () => setTab("mine"); $("navAll").onclick = () => setTab("all");
+$("navAdd").onclick = () => { if (state.user) openAdd(); };
+$("search").addEventListener("input", (e) => { state.query = e.target.value; renderList(); });
+$("grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id); });
+$("rows").addEventListener("click", (e) => { const c = e.target.closest(".row"); if (c) openDetail(c.dataset.id); });
+$("authBtn").onclick = async () => {
+  const email = $("authEmail").value.trim(); if (!email) return;
+  $("authBtn").disabled = true;
+  try { await store.signIn(email); $("authMsg").textContent = "Check your email and tap the link to sign in."; }
+  catch (e) { $("authMsg").textContent = e.message; }
+  finally { $("authBtn").disabled = false; }
+};
+$("userChip").onclick = async () => {
+  if (!state.user) return;
+  if (confirm(configured ? "Sign out?" : "Change the name shown on your notes?")) {
+    if (configured) await store.signOut(); else { localStorage.removeItem("winedex-name"); tasterName(); }
+  }
+};
+
+async function boot() {
+  $("demoBanner").classList.toggle("hidden", !!configured);
+  state.user = await store.user();
+  if (!state.user) { show("auth"); return; }
+  $("userChip").textContent = configured ? state.user.email[0].toUpperCase() : "W";
+  show("list"); await loadAll();
+}
+store.onAuth(boot);
+boot();
+
+// Offline shell (PWA) – registers the small service worker if the browser supports it.
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
