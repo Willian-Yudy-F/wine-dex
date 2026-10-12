@@ -6,7 +6,7 @@
 
 | My cellar | Wine detail & comparison | Log a wine | Explore |
 | --- | --- | --- | --- |
-| ![Cellar](docs/cellar.png) | ![Detail](docs/detail.png) | ![Form](docs/form.png) | ![Explore](docs/explore.png) |
+| ![Cellar](docs/cellar.jpg) | ![Detail](docs/detail.jpg) | ![Form](docs/form.jpg) | ![Explore](docs/explore.jpg) |
 
 ## Features
 
