@@ -1,12 +1,12 @@
 {
   "name": "Wine Dex",
   "short_name": "Wine Dex",
-  "description": "Your personal wine journal: photograph the bottle, rate it, compare with everyone.",
+  "description": "A Pokédex for wine. Your cellar lives on your phone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#1a0a0f",
-  "theme_color": "#2a0a12",
+  "background_color": "#140A0E",
+  "theme_color": "#140A0E",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
