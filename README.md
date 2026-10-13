@@ -1,77 +1,58 @@
 # 🍷 Wine Dex
 
-**A Pokédex for wine.** Photograph the bottle, write what you think, and see how your taste compares with everyone else who logged the same wine. Built as a mobile-first web app you can open from your phone's browser — no app store, no install.
+**A Pokédex for wine — and it lives entirely on your phone.** Photograph the bottle, rate it, write what you tasted, and build your own numbered collection. No account, no server, no tracking: every wine, note and photo is stored in your device's own database and never leaves it.
 
-> Inspired by Vivino, built from seven years behind the bar. Every wine you log gets a number in *your* cellar (#001, #002…), just like a Pokédex.
+**Open it:** https://willian-yudy-f.github.io/wine-dex/ — then *Add to Home Screen* and it works like an app, offline.
 
-| My cellar | Wine detail & comparison | Log a wine | Explore |
+## In plain English
+Vivino stores your wine notes on their servers. Wine Dex stores them on *your* phone, like a real Pokédex you carry around. Each bottle you log gets a number (#001, #002…), a photo of the label, your star rating, flavour tags and a note. The Insights tab turns that into your personal taste profile: which types and countries you drink, your top-rated bottles, best value, and how much you have logged. A one-tap backup file lets you move your cellar to a new phone.
+
+| My cellar | Wine detail | Log a wine | Insights |
 | --- | --- | --- | --- |
-| ![Cellar](docs/cellar.jpg) | ![Detail](docs/detail.jpg) | ![Form](docs/form.jpg) | ![Explore](docs/explore.jpg) |
+| ![Cellar](docs/cellar.jpg) | ![Detail](docs/detail.jpg) | ![Form](docs/form.jpg) | ![Insights](docs/explore.jpg) |
 
 ## Features
-
-- **Snap the bottle** – uses the phone camera directly (`<input capture="environment">`); photos are resized in the browser before upload so they are fast on mobile data.
-- **Personal notes** – star rating (1–5, half steps), flavour tags ("Dark fruit", "Oak", "Long finish"…), free-text note, price, place and date.
-- **Compare with everyone** – each wine shows *your* rating next to the community average, a 1–5 rating distribution, the flavour tags people mention most, and a one-line verdict ("You like it more than others do (+0.7)").
-- **Taste match** – the Explore tab scores how often you land within half a star of the crowd, and where you drift (reds +0.3, whites −0.4).
-- **Shared wine catalogue** – the same wine logged by two people is stored once (`wines`) with many tastings (`tastings`), so comparisons actually line up.
-- **Search & filters** – filter the cellar by wine type, free-text search by name, producer, grape, region; Explore lists what everyone is drinking, sorted by number of tasters.
-- **Installable (PWA)** – add to home screen; the app shell works offline.
-- **Demo mode** – with no Supabase keys the app runs entirely in the browser (localStorage), so you can try it in 10 seconds.
+- **Local-first** — wines, notes and photos live in IndexedDB on the device. Nothing is uploaded, ever. Works with no internet after the first visit.
+- **Snap the label** — uses the phone camera directly; photos are resized in the browser (1400 px + 480 px thumbnail) so the app stays fast.
+- **Pokédex numbering** — every wine gets a permanent number in the order you discovered it.
+- **Notes you can edit** — star rating with half steps, flavour tags, free text, price, place, date. Edit or delete any note; log the same wine again and the app keeps one entry per bottle (autocomplete while you type).
+- **Insights** — collection progress by type, wines by type and country, last-12-months activity, flavours you taste most, top rated, best value, average spend.
+- **Backup & restore** — export one JSON file (photos included) from Settings; restore it on any phone. Duplicates are skipped.
+- **Installable PWA** — add to home screen on iOS/Android; service worker caches the app shell.
 
 ## Stack
-
 | Layer | Choice | Why |
 | --- | --- | --- |
-| Front end | Vanilla HTML / CSS / JavaScript, single `index.html` | Nothing to build, loads instantly on a phone, easy to read |
-| Hosting | GitHub Pages | Free, HTTPS (needed for the camera and PWA) |
-| Auth | Supabase Auth – magic link by e-mail | No passwords to manage |
-| Database | Supabase PostgreSQL with Row Level Security | Everyone can read all tastings (community average); each person can only write their own rows |
-| Photos | Supabase Storage bucket `wine-photos` | Public read, per-user upload folder enforced by policy |
+| App | One `index.html`: vanilla HTML / CSS / JavaScript | No build step, loads instantly on a phone, easy to read |
+| Storage | IndexedDB (three stores: `wines`, `tastings`, `photos`) with a 40-line wrapper, no library | Photos stored as real `Blob`s, not base64 strings; survives app restarts |
+| Hosting | GitHub Pages | Free static hosting with HTTPS (required for the camera and PWA) |
+| Offline | Service worker + web manifest | Opens without internet, installable |
 
 ```
-index.html        app (UI + logic)
-config.js         Supabase URL + anon key (public, protected by RLS)
-supabase/
-  schema.sql      tables, view, RLS and storage policies
-manifest.json     PWA manifest
-sw.js             service worker (offline shell)
-icon.svg          app icon
-docs/             screenshots
+index.html      app (UI + logic)
+manifest.json   PWA manifest
+sw.js           service worker (offline shell)
+icon.svg        app icon
+docs/           screenshots
 ```
 
 ### Data model
-
 ```
-wines (id, name, producer, vintage, wine_type, grape, country, region, created_by)
-   1 ──< tastings (id, wine_id, user_id, taster_name, rating, notes, tags[], photo_url, price, place, tasted_at)
-wine_stats (view): wine_id, tasting_count, avg_rating, taster_count
+wines     (id, name, producer, vintage, type, grape, country, region, createdAt)
+tastings  (id, wineId, rating, notes, tags[], photoId, price, place, tastedAt, createdAt)
+photos    (id, full: Blob, thumb: Blob)
 ```
 
-## Run it yourself
-
-1. **Create a Supabase project** (free tier is enough). Choose a region close to you.
-2. In **SQL Editor**, paste and run [`supabase/schema.sql`](supabase/schema.sql). This creates the tables, the `wine_stats` view, RLS policies and the `wine-photos` bucket.
-3. In **Authentication → URL Configuration**, set *Site URL* to where the app will live (e.g. `https://<you>.github.io/wine-dex/`) and add it to *Redirect URLs*.
-4. Copy **Project URL** and **anon public key** from *Project Settings → API* into `config.js`.
-5. Push to GitHub and enable **Settings → Pages → Deploy from branch (main, root)**.
-6. Open the URL on your phone, enter your e-mail, tap the magic link, and log your first bottle.
-
-To try it without any backend, just open `index.html` from any static server – it starts in demo mode.
-
-## Roadmap
-
-- [ ] Read the label with AI (vision model) to pre-fill name, producer and vintage from the photo
-- [ ] Food-pairing tags and a "would buy again" flag
-- [ ] Friends: compare only with people you follow
-- [ ] Export your cellar as CSV
+## Run it locally
+Any static server works — for example `python3 -m http.server 8000` in this folder, then open `http://localhost:8000`. Your data stays in that browser's IndexedDB.
 
 ## Design
+Designed first as four phone artboards in Claude Design, then built by hand: dark cellar ground `#140A0E`, gold accent `#D9B36A`, wine red `#B8304A`, Fraunces for display type and Manrope for text, inline SVG icons, 44 px touch targets.
 
-The UI was designed first as four phone artboards in Claude Design (cellar, detail, log, explore) and then built by hand: dark cellar ground `#140A0E`, gold accent `#D9B36A`, wine red `#B8304A`, Fraunces for display type and Manrope for text, inline SVG icons, 44 px touch targets.
+## Roadmap
+- [ ] Read the label with on-device OCR / AI to pre-fill name, producer and vintage
+- [ ] Share a wine as an image card
+- [ ] Optional cloud sync (Supabase) to compare notes with friends — an earlier version of this repo had it; the schema lives in the git history
 
 ## About
-
-Built by [Willian Yudy Futema](https://willian-yudy-f.github.io/) — IT Support Coordinator at Merivale (Allianz Stadium & SCG) and a bartender for many years before that. This project combines what I know about wine service with what I am learning in data and web development.
-
-MIT License.
+Built by [Willian Yudy Futema](https://willian-yudy-f.github.io/) — IT Support Coordinator at Merivale (Allianz Stadium & SCG) and a bartender for many years before that. MIT License.
