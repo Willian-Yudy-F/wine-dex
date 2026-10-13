@@ -4,14 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#140A0E">
+<meta name="description" content="Wine Dex — a Pokédex for wine. Photograph the bottle, rate it, keep your notes. Everything stays on your phone.">
 <title>Wine Dex</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ---------- design tokens (from the approved Claude Design canvas) ---------- */
   :root {
     --bg: #140A0E; --card: #22121A; --card-2: #3A1420; --line: #2E1A22; --line-2: #3A2129;
     --text: #F5EDE6; --text-2: #E8DCD4; --muted: #A8908F; --muted-2: #C9B1B8;
@@ -20,9 +22,9 @@
     --t-dessert: #C98A3A; --t-fortified: #8A5AA0; --t-orange: #E0863A;
     --nav-h: 92px; --serif: Fraunces, Georgia, serif; --sans: Manrope, system-ui, sans-serif;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
-  body { min-height: 100vh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  body { min-height: 100vh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); overscroll-behavior-y: none; }
   h1, h2 { font-family: var(--serif); margin: 0; font-weight: 600; letter-spacing: -0.4px; }
   button, input, select, textarea { font: inherit; }
   button { cursor: pointer; }
@@ -30,16 +32,15 @@
   .hidden { display: none !important; }
   main { max-width: 720px; margin: 0 auto; }
   svg { flex: 0 0 auto; }
+  .view { animation: fade .18s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-  /* ---------- top ---------- */
   .top { padding: calc(18px + env(safe-area-inset-top)) 20px 0; display: flex; align-items: flex-end; justify-content: space-between; }
   .eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; display: block; }
   .top h1 { font-size: 32px; line-height: 1; }
-  .avatar { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line-2); background: var(--card); color: var(--gold); font-family: var(--serif); font-size: 16px; font-weight: 600; display: grid; place-items: center; }
+  .avatar { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line-2); background: var(--card); color: var(--gold); display: grid; place-items: center; }
   .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-  .demo-banner { margin: 14px 20px 0; background: rgba(217,179,106,.1); border: 1px solid rgba(217,179,106,.35); color: var(--gold); font-size: 12px; padding: 8px 12px; border-radius: 12px; text-align: center; }
 
-  /* ---------- stats, search, pills ---------- */
   .stats { margin: 18px 20px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 2px; }
   .stat b { font-family: var(--serif); font-size: 24px; font-weight: 600; }
@@ -47,23 +48,19 @@
   .stat span { font-size: 11px; color: var(--muted); font-weight: 600; }
   .search { margin: 14px 20px 0; display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 0 14px; height: 46px; }
   .search input { flex: 1; background: transparent; border: 0; outline: none; color: var(--text); font-size: 15px; min-width: 0; }
+  .search select { background: transparent; border: 0; color: var(--muted-2); font-size: 12px; font-weight: 700; outline: none; -webkit-appearance: none; appearance: none; text-align: right; }
   .pills { margin-top: 12px; padding: 0 20px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
   .pills::-webkit-scrollbar { display: none; }
   .pill { flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 17px; border: 1px solid var(--line); background: var(--card); color: var(--muted-2); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
   .pill i { width: 9px; height: 9px; border-radius: 5px; display: inline-block; }
   .pill.active { background: var(--gold); border-color: var(--gold); color: var(--bg); }
   .pill.type.active { background: var(--card-2); border-color: var(--gold); color: var(--text); }
-  .tabs { margin: 14px 20px 0; display: flex; gap: 8px; }
-  .tabs button { flex: 1; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--muted-2); font-weight: 700; font-size: 13px; }
-  .tabs button.active { background: var(--card-2); border-color: var(--gold); color: var(--text); }
 
-  /* ---------- grid cards ---------- */
   .grid { padding: 16px 20px 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   @media (min-width: 560px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; text-align: left; color: var(--text); padding: 0; }
   .card:active { transform: scale(.98); }
   .card .photo { position: relative; height: 170px; background: var(--card-2) center/cover no-repeat; display: flex; align-items: flex-end; justify-content: center; }
-  .card .photo svg { margin-bottom: 0; }
   .num { position: absolute; top: 10px; left: 10px; background: rgba(20,10,14,.75); color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 8px; border-radius: 8px; }
   .dot { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; border-radius: 5px; box-shadow: 0 0 0 2px rgba(245,237,230,.6); }
   .card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; }
@@ -74,70 +71,76 @@
   .card .scores span { font-size: 11px; color: var(--muted); font-weight: 600; }
   .empty { text-align: center; color: var(--muted); padding: 50px 24px; line-height: 1.6; font-size: 14px; }
   .empty svg { display: block; margin: 0 auto 10px; }
+  .empty b { color: var(--text); }
 
-  /* ---------- rows (explore) ---------- */
-  .rows { padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 10px; }
+  .section-head { margin: 22px 20px 0; display: flex; justify-content: space-between; align-items: baseline; }
+  .link { background: none; border: 0; color: var(--gold); padding: 0; font-size: 13px; font-weight: 700; }
+  .panel { margin: 12px 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .panel .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
+  .panel .head span { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .bars { display: flex; flex-direction: column; gap: 8px; }
+  .bars div { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .bars .l { width: 84px; color: var(--muted-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--gold); border-radius: 4px; }
+  .bars .n { width: 34px; color: var(--muted); text-align: right; }
+  .ring-row { display: flex; align-items: center; gap: 16px; }
+  .ring { width: 84px; height: 84px; border-radius: 42px; display: grid; place-items: center; flex: 0 0 auto; }
+  .ring > div { width: 66px; height: 66px; border-radius: 33px; background: var(--card); display: grid; place-items: center; font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--gold); }
+  .ring-row p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .ring-row b { font-size: 15px; display: block; margin-bottom: 4px; color: var(--text); }
+  .rows { padding: 12px 20px 0; display: flex; flex-direction: column; gap: 10px; }
   .row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 10px 10px; color: var(--text); text-align: left; width: 100%; }
   .row .thumb { width: 54px; height: 70px; border-radius: 10px; background: var(--card-2) center/cover no-repeat; display: flex; align-items: flex-end; justify-content: center; flex: 0 0 auto; }
   .row .mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .row .mid .name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .mid .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bar { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
-  .bar > i { display: block; height: 100%; background: var(--gold); border-radius: 3px; }
-  .row .right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
-  .row .right b { font-family: var(--serif); font-size: 22px; font-weight: 600; line-height: 1; }
-  .row .right span { font-size: 11px; font-weight: 700; }
-  .match { margin: 18px 20px 0; border-radius: 20px; padding: 18px; background: var(--card); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
-  .match .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
-  .match .head span { font-size: 11px; color: var(--muted); font-weight: 600; }
-  .match .body { display: flex; align-items: center; gap: 16px; }
-  .ring { width: 84px; height: 84px; border-radius: 42px; display: grid; place-items: center; flex: 0 0 auto; }
-  .ring > div { width: 66px; height: 66px; border-radius: 33px; background: var(--card); display: grid; place-items: center; font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--gold); }
-  .match p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
-  .match b { font-size: 15px; display: block; margin-bottom: 4px; color: var(--text); }
-  .section-head { margin: 22px 20px 0; display: flex; justify-content: space-between; align-items: baseline; }
-  .link { background: none; border: 0; color: var(--gold); padding: 0; font-size: 13px; font-weight: 700; }
+  .row .right b { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--gold); }
+  .months { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+  .months div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 70px; }
+  .months em { display: block; width: 100%; height: 56px; display: flex; align-items: flex-end; }
+  .months i { display: block; width: 100%; background: var(--gold); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .9; }
+  .months span { font-size: 9px; color: var(--muted); }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; border: 1px solid var(--line-2); color: var(--muted-2); }
+  .badge-chip.on { border-color: var(--gold); color: var(--gold); }
 
-  /* ---------- detail ---------- */
-  .hero { position: relative; height: 420px; background: radial-gradient(circle at 50% 30%, #4A1A2A 0%, #22101A 60%, #140A0E 100%) center/cover no-repeat; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+  .hero { position: relative; height: 420px; background: radial-gradient(circle at 50% 30%, #4A1A2A 0%, #22101A 60%, #140A0E 100%); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
   .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .hero .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(20,10,14,0) 0%, #140A0E 100%); }
-  .hero .back { position: absolute; top: calc(16px + env(safe-area-inset-top)); left: 16px; width: 44px; height: 44px; border-radius: 22px; background: rgba(20,10,14,.6); color: var(--text); border: 0; display: grid; place-items: center; }
-  .hero .num { top: calc(26px + env(safe-area-inset-top)); left: auto; right: 16px; font-size: 12px; padding: 6px 10px; border-radius: 10px; }
+  .hero .back, .hero .more { position: absolute; top: calc(16px + env(safe-area-inset-top)); width: 44px; height: 44px; border-radius: 22px; background: rgba(20,10,14,.6); color: var(--text); border: 0; display: grid; place-items: center; }
+  .hero .back { left: 16px; } .hero .more { right: 16px; }
+  .hero .num { top: calc(26px + env(safe-area-inset-top)); left: auto; right: 72px; font-size: 12px; padding: 6px 10px; border-radius: 10px; }
   .title-block { padding: 0 20px; margin-top: -24px; display: flex; flex-direction: column; gap: 6px; position: relative; }
   .badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; background: var(--card-2); color: #F5A9B8; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
   .badge i { width: 8px; height: 8px; border-radius: 4px; }
   .title-block h2 { font-size: 30px; line-height: 1.1; margin-top: 4px; }
   .meta { font-size: 14px; color: var(--muted); }
-  .compare { margin: 20px 20px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .box { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+  .compare { margin: 20px 20px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; }
   .box.mine { border-color: var(--gold); }
-  .box b { font-family: var(--serif); font-size: 44px; font-weight: 600; line-height: 1; }
+  .box b { font-family: var(--serif); font-size: 32px; font-weight: 600; line-height: 1; }
   .box.mine b { color: var(--gold); }
-  .box span { font-size: 12px; color: var(--muted); }
-  .panel { margin: 12px 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-  .panel .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
-  .panel .head span { color: var(--gold); font-size: 12px; }
-  .dist { display: flex; flex-direction: column; gap: 7px; }
-  .dist div { display: flex; align-items: center; gap: 10px; }
-  .dist .l { width: 22px; font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; }
-  .dist .bar { flex: 1; height: 8px; border-radius: 4px; }
-  .dist .n { width: 28px; font-size: 12px; color: var(--muted); text-align: right; }
+  .box span { font-size: 11px; color: var(--muted); }
   .tagwrap { margin: 12px 20px 0; display: flex; flex-direction: column; gap: 8px; }
   .tags { display: flex; flex-wrap: wrap; gap: 8px; }
   .verdict { margin: 12px 20px 0; background: var(--card); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 0 12px 12px 0; font-size: 14px; color: var(--muted-2); line-height: 1.45; }
   .notes { margin: 20px 20px 0; display: flex; flex-direction: column; gap: 10px; }
   .note { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-  .note.mine { border-color: var(--gold); }
   .note .head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; }
   .note .head small { color: var(--muted); font-weight: 500; font-size: 13px; }
-  .note .head b { font-family: var(--serif); font-size: 18px; font-weight: 600; }
-  .note.mine .head b { color: var(--gold); }
+  .note .head b { font-family: var(--serif); font-size: 18px; font-weight: 600; color: var(--gold); }
   .note p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2); white-space: pre-wrap; }
   .note .extra { font-size: 12px; color: var(--muted); }
   .note .tags .pill { height: 26px; font-size: 11px; padding: 0 10px; }
+  .note .actions { display: flex; gap: 14px; }
+  .note .actions .link.danger { color: var(--warn); }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 40; display: flex; align-items: flex-end; }
+  .sheet > div { background: var(--card); width: 100%; max-width: 720px; margin: 0 auto; border-radius: 20px 20px 0 0; padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; }
+  .sheet button { background: none; border: 0; color: var(--text); text-align: left; padding: 14px 4px; font-size: 16px; font-weight: 600; border-bottom: 1px solid var(--line); }
+  .sheet button.danger { color: var(--warn); }
+  .sheet button:last-child { border: 0; color: var(--muted); }
 
-  /* ---------- form ---------- */
   .form-head { padding: calc(18px + env(safe-area-inset-top)) 20px 0; display: flex; align-items: center; justify-content: space-between; }
   .form-head h2 { font-size: 20px; }
   .form-head .num { position: static; background: none; padding: 0; font-size: 12px; }
@@ -151,15 +154,18 @@
   .capture b { font-size: 15px; }
   .capture small { font-size: 12px; color: var(--muted); }
   .capture input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-  .capture.has > :not(input) { display: none; }
-  .capture .retake { position: absolute; right: 10px; bottom: 10px; background: rgba(20,10,14,.75); color: var(--text); border: 0; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 700; display: none; }
-  .capture.has .retake { display: block; pointer-events: none; }
+  .capture.has > :not(input):not(.retake) { display: none; }
+  .capture .retake { position: absolute; right: 10px; bottom: 10px; background: rgba(20,10,14,.75); color: var(--text); border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 700; display: none; pointer-events: none; }
+  .capture.has .retake { display: block; }
   .fields { margin: 22px 20px 0; display: flex; flex-direction: column; gap: 14px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field input, .field textarea { height: 50px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 0 14px; font-size: 15px; min-width: 0; width: 100%; outline: none; }
   .field input:focus, .field textarea:focus { border-color: var(--gold); }
   .field textarea { height: 110px; padding: 12px 14px; resize: none; }
   .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .suggest { background: var(--card); border: 1px solid var(--line-2); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .suggest button { background: none; border: 0; color: var(--text); text-align: left; padding: 10px 8px; border-radius: 8px; font-size: 14px; }
+  .suggest button small { color: var(--muted); display: block; font-size: 12px; }
   .rating { margin: 24px 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
   .rating .label { align-self: flex-start; }
   .stars { display: flex; gap: 4px; }
@@ -174,91 +180,81 @@
   .btn { margin: 26px 20px 0; height: 56px; border-radius: 16px; background: var(--wine); color: #fff; border: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 700; width: calc(100% - 40px); box-shadow: 0 10px 24px rgba(184,48,74,.35); }
   .btn:disabled { opacity: .6; }
   .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); box-shadow: none; margin-top: 12px; }
+  .btn.danger { background: transparent; color: var(--warn); border: 1px solid rgba(240,163,178,.4); box-shadow: none; margin-top: 12px; }
 
-  /* ---------- auth ---------- */
-  .auth { max-width: 380px; margin: 60px auto 0; padding: 0 24px; text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
-  .auth h2 { font-size: 30px; }
-  .auth p { color: var(--muted); line-height: 1.5; margin: 0; font-size: 14px; }
-  .auth .field { width: 100%; text-align: left; }
-  .auth .btn { margin: 6px 0 0; width: 100%; }
+  .settings-list { margin: 16px 20px 0; display: flex; flex-direction: column; gap: 10px; }
+  .srow { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; color: var(--text); text-align: left; width: 100%; }
+  .srow .ic { width: 40px; height: 40px; border-radius: 12px; background: var(--card-2); display: grid; place-items: center; color: var(--gold); flex: 0 0 auto; }
+  .srow b { display: block; font-size: 15px; }
+  .srow small { color: var(--muted); font-size: 12px; line-height: 1.4; display: block; }
+  .srow.danger .ic { color: var(--warn); }
+  .srow input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .about { margin: 16px 20px 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
-  /* ---------- nav & toast ---------- */
-  nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 10px 24px calc(28px + env(safe-area-inset-bottom)); background: rgba(20,10,14,.92); backdrop-filter: blur(10px); border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; z-index: 10; max-width: 720px; margin: 0 auto; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 10px 24px calc(28px + env(safe-area-inset-bottom)); background: rgba(20,10,14,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; z-index: 10; max-width: 720px; margin: 0 auto; }
   nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: 0; color: var(--muted); font-size: 11px; font-weight: 700; width: 64px; height: 50px; }
   nav button.active { color: var(--gold); }
   nav button.fab { width: 60px; height: 60px; border-radius: 30px; background: var(--wine); color: #fff; box-shadow: 0 10px 24px rgba(184,48,74,.45); margin-top: -34px; }
   .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 20px); transform: translateX(-50%); background: #0B0507; color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 14px; z-index: 50; box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: 90vw; display: none; }
+  .install-tip { margin: 14px 20px 0; background: rgba(217,179,106,.1); border: 1px solid rgba(217,179,106,.35); color: var(--gold); font-size: 12px; padding: 10px 12px; border-radius: 12px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .install-tip button { background: none; border: 0; color: var(--gold); font-weight: 700; }
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="halfGrad"><stop offset="50%" stop-color="#D9B36A"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs></svg>
 
 <main>
-  <!-- ===== Auth ===== -->
-  <section id="view-auth" class="auth hidden">
-    <svg width="72" height="72" viewBox="0 0 128 128" aria-hidden="true"><rect width="128" height="128" rx="28" fill="#22121A"/><circle cx="64" cy="64" r="44" fill="#B8304A"/><circle cx="64" cy="64" r="34" fill="#22121A"/><circle cx="64" cy="64" r="26" fill="#D9B36A"/><path d="M52 42h24l-2 20c-1 6-5 10-10 10s-9-4-10-10z" fill="#B8304A"/><rect x="61" y="72" width="6" height="12" fill="#B8304A"/><rect x="52" y="84" width="24" height="4" rx="2" fill="#B8304A"/></svg>
-    <h2>Welcome to Wine Dex</h2>
-    <p>Snap the bottle, write what you think, and see how your taste compares with everyone else's.</p>
-    <div class="field"><label class="label" for="authEmail">Email</label><input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
-    <button class="btn" id="authBtn">Send me a login link</button>
-    <p id="authMsg"></p>
+  <!-- ===== Cellar ===== -->
+  <section id="view-cellar" class="view hidden">
+    <div class="top">
+      <div><span class="eyebrow" id="greet">Good evening</span><h1>My cellar</h1></div>
+      <button class="avatar" id="settingsBtn" aria-label="Settings"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+    <div id="installTip" class="install-tip hidden"><span>Add Wine Dex to your home screen to use it like an app, offline.</span><button id="installBtn">Install</button></div>
+    <div class="stats">
+      <div class="stat"><b id="stCount">0</b><span>wines logged</span></div>
+      <div class="stat"><b class="gold" id="stAvg">–</b><span>my average</span></div>
+      <div class="stat"><b id="stCountries">0</b><span>countries</span></div>
+    </div>
+    <div class="search">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A8908F" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="search" placeholder="Search wine, producer, grape" aria-label="Search">
+      <select id="sort" aria-label="Sort"><option value="recent">Recent</option><option value="rating">Top rated</option><option value="name">A–Z</option><option value="number">#</option></select>
+    </div>
+    <div class="pills" id="typeFilters"></div>
+    <div id="grid" class="grid"></div>
+    <div id="emptyState" class="empty hidden">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#5A3A44" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l1 7a5 5 0 0 1-10 0z"/><path d="M12 15v5M8 21h8"/></svg>
+      <b>Your cellar is empty.</b><br>Tap <b>+</b> to photograph your first bottle.<br><span style="font-size:12px">Everything you log stays on this device.</span>
+    </div>
   </section>
 
-  <!-- ===== Cellar / Explore ===== -->
-  <section id="view-list" class="hidden">
-    <div class="top">
-      <div><span class="eyebrow" id="greet">Good evening</span><h1 id="listTitle">My cellar</h1></div>
-      <button class="avatar" id="userChip" aria-label="Account">W</button>
-    </div>
-    <div id="demoBanner" class="demo-banner hidden">Demo mode: Supabase is not configured, entries are saved only in this browser.</div>
-
-    <!-- cellar -->
-    <div id="cellarPane">
-      <div class="stats">
-        <div class="stat"><b id="stCount">0</b><span>wines logged</span></div>
-        <div class="stat"><b class="gold" id="stAvg">–</b><span>my average</span></div>
-        <div class="stat"><b id="stCountries">0</b><span>countries</span></div>
-      </div>
-      <div class="search">
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A8908F" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input id="search" placeholder="Search wine, producer, grape" aria-label="Search">
-      </div>
-      <div class="pills" id="typeFilters"></div>
-      <div id="grid" class="grid"></div>
-      <div id="emptyState" class="empty hidden">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5A3A44" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l1 7a5 5 0 0 1-10 0z"/><path d="M12 15v5M8 21h8"/></svg>
-        No wines in your cellar yet.<br>Tap <b>+</b> to log your first bottle.
-      </div>
-    </div>
-
-    <!-- explore -->
-    <div id="explorePane" class="hidden">
-      <div class="match" id="matchCard"></div>
-      <div class="section-head"><span class="label">Trending</span><span class="label" id="exploreCount"></span></div>
-      <div class="rows" id="rows"></div>
-      <div id="emptyExplore" class="empty hidden">Nobody has logged a wine yet. Be the first.</div>
-    </div>
+  <!-- ===== Insights ===== -->
+  <section id="view-insights" class="view hidden">
+    <div class="top"><div><span class="eyebrow">Your taste, in numbers</span><h1>Insights</h1></div></div>
+    <div id="insights"></div>
+    <div style="height:30px"></div>
   </section>
 
   <!-- ===== Detail ===== -->
-  <section id="view-detail" class="hidden"></section>
+  <section id="view-detail" class="view hidden"></section>
 
-  <!-- ===== Log ===== -->
-  <section id="view-add" class="hidden">
-    <form id="addForm">
-      <div class="form-head"><button type="button" class="link" id="cancelAdd" style="color:var(--muted)">Cancel</button><h2>Log a wine</h2><span class="num" id="nextNum">#001</span></div>
-      <div class="steps"><i class="on" id="s1"></i><i id="s2"></i><i id="s3"></i></div>
+  <!-- ===== Log / Edit ===== -->
+  <section id="view-add" class="view hidden">
+    <form id="addForm" autocomplete="off">
+      <div class="form-head"><button type="button" class="link" id="cancelAdd" style="color:var(--muted)">Cancel</button><h2 id="formTitle">Log a wine</h2><span class="num" id="nextNum">#001</span></div>
+      <div class="steps"><i class="on"></i><i id="s2"></i><i id="s3"></i></div>
       <div class="steps-l label"><span class="on">Photo</span><span id="sl2">Wine</span><span id="sl3">My note</span></div>
 
       <div class="capture" id="photoBox">
         <div class="cam"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
-        <b>Snap the label</b><small>Photo is saved with your note</small>
+        <b>Snap the label</b><small>Saved on this phone only</small>
         <span class="retake">Tap to retake</span>
         <input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="Take a photo">
       </div>
 
       <div class="fields">
-        <div class="field"><label class="label" for="fName">Wine name</label><input id="fName" required placeholder="e.g. Bin 389 Cabernet Shiraz"></div>
+        <div class="field"><label class="label" for="fName">Wine name</label><input id="fName" required placeholder="e.g. Bin 389 Cabernet Shiraz"><div id="suggest" class="suggest hidden"></div></div>
         <div class="two">
           <div class="field"><label class="label" for="fProducer">Producer</label><input id="fProducer" placeholder="Penfolds"></div>
           <div class="field"><label class="label" for="fVintage">Vintage</label><input id="fVintage" type="number" inputmode="numeric" min="1900" max="2100" placeholder="2021"></div>
@@ -288,26 +284,69 @@
         <div class="field"><label class="label" for="fDate">Tasted on</label><input id="fDate" type="date"></div>
       </div>
 
-      <button class="btn" id="saveBtn" type="submit"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>Save to my cellar</button>
+      <button class="btn" id="saveBtn" type="submit"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg><span id="saveLabel">Save to my cellar</span></button>
       <div style="height:30px"></div>
     </form>
+  </section>
+
+  <!-- ===== Settings ===== -->
+  <section id="view-settings" class="view hidden">
+    <div class="form-head"><button type="button" class="link" id="closeSettings" style="color:var(--muted)">Back</button><h2>Settings</h2><span></span></div>
+    <div class="settings-list">
+      <label class="srow" style="position:relative;cursor:pointer"><span class="ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v3h16v-3M12 4v12M7 11l5 5 5-5"/></svg></span><span><b>Back up my cellar</b><small>Downloads one file with all wines, notes and photos. Keep it in iCloud, Drive or e-mail it to yourself.</small></span><button type="button" id="exportBtn" style="position:absolute;inset:0;opacity:0;width:100%;height:100%" aria-label="Back up"></button></label>
+      <label class="srow" style="position:relative;cursor:pointer"><span class="ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v3h16v-3M12 16V4M7 9l5-5 5 5"/></svg></span><span><b>Restore from a backup</b><small>Choose a Wine Dex backup file. Existing entries are kept; duplicates are skipped.</small></span><input type="file" id="importInput" accept="application/json,.json" aria-label="Restore"></label>
+      <button type="button" class="srow danger" id="wipeBtn"><span class="ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><span><b>Erase everything</b><small>Deletes all wines, notes and photos from this device. Make a backup first.</small></span></button>
+    </div>
+    <p class="about"><b style="color:var(--text)">Wine Dex</b> keeps everything on your device — nothing is uploaded anywhere. Add it to your home screen and it works without internet.<br><span id="storageInfo"></span><br><br>Built by Willian Yudy Futema · <a href="https://github.com/Willian-Yudy-F/wine-dex" style="color:var(--gold)">Source on GitHub</a></p>
   </section>
 </main>
 
 <nav id="nav">
-  <button id="navMine" class="active"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l1 7a5 5 0 0 1-10 0z"/><path d="M12 15v5M8 21h8"/></svg>Cellar</button>
+  <button id="navCellar" class="active"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l1 7a5 5 0 0 1-10 0z"/><path d="M12 15v5M8 21h8"/></svg>Cellar</button>
   <button id="navAdd" class="fab" aria-label="Log a wine"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-  <button id="navAll"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Explore</button>
+  <button id="navInsights"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</button>
 </nav>
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
 <script>
 /* =====================================================================
-   Wine Dex – single-page app
-   Sections: helpers · data stores (Supabase / local demo) · views · events
+   Wine Dex — local-first wine journal
+   All data lives in IndexedDB on this device. No account, no server.
+   Sections: db · helpers · state/router · cellar · detail · log/edit · insights · settings · boot
    ===================================================================== */
+
+// ---------- IndexedDB (tiny wrapper, no library) ----------
+const DB_NAME = "winedex", DB_VERSION = 1;
+const db = {
+  _db: null,
+  open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const d = req.result;
+        if (!d.objectStoreNames.contains("wines")) d.createObjectStore("wines", { keyPath: "id" });
+        if (!d.objectStoreNames.contains("tastings")) { const s = d.createObjectStore("tastings", { keyPath: "id" }); s.createIndex("wineId", "wineId"); }
+        if (!d.objectStoreNames.contains("photos")) d.createObjectStore("photos", { keyPath: "id" });
+      };
+      req.onsuccess = () => { this._db = req.result; resolve(); };
+      req.onerror = () => reject(req.error);
+    });
+  },
+  tx(store, mode, fn) {
+    return new Promise((resolve, reject) => {
+      const t = this._db.transaction(store, mode); const s = t.objectStore(store);
+      const r = fn(s); let out;
+      if (r && "onsuccess" in r) r.onsuccess = () => (out = r.result);
+      t.oncomplete = () => resolve(out); t.onerror = () => reject(t.error); t.onabort = () => reject(t.error);
+    });
+  },
+  all(store) { return this.tx(store, "readonly", (s) => s.getAll()); },
+  get(store, id) { return this.tx(store, "readonly", (s) => s.get(id)); },
+  put(store, obj) { return this.tx(store, "readwrite", (s) => s.put(obj)); },
+  del(store, id) { return this.tx(store, "readwrite", (s) => s.delete(id)); },
+  byIndex(store, index, value) { return this.tx(store, "readonly", (s) => s.index(index).getAll(value)); },
+  clear(store) { return this.tx(store, "readwrite", (s) => s.clear()); },
+};
 
 // ---------- helpers ----------
 const $ = (id) => document.getElementById(id);
@@ -320,372 +359,321 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + 
 const fmt1 = (n) => (n == null ? "–" : Number(n).toFixed(1));
 const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 const fmtDate = (d) => (d ? new Date(d + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
+const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const bottleSvg = (w, h, fill) => `<svg aria-hidden="true" width="${w}" height="${h}" viewBox="0 0 46 120"><path d="M17 0h12v22c0 6 9 10 9 24v66a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8V46c0-14 9-18 9-24z" fill="${fill}"/><rect x="12" y="58" width="22" height="30" rx="2" fill="#F5EDE6" opacity="0.9"/></svg>`;
 const starSvg = `<svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2.8l2.9 6 6.6.9-4.8 4.6 1.2 6.6L12 17.8 6.1 20.9l1.2-6.6L2.5 9.7l6.6-.9z"/></svg>`;
 let toastTimer;
 function toast(msg) { const el = $("toast"); el.textContent = msg; el.style.display = "block"; clearTimeout(toastTimer); toastTimer = setTimeout(() => (el.style.display = "none"), 2600); }
 
-// Shrink a photo in the browser before upload (max 1200 px, JPEG) so uploads are fast on mobile data.
-function resizeImage(file, max = 1200) {
+// Photos: shrink in the browser, keep a full-size (1200px) and a thumbnail (400px) as JPEG blobs.
+function resize(file, max, q) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      c.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not process image"))), "image/jpeg", 0.82);
+      c.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not process image"))), "image/jpeg", q);
+      URL.revokeObjectURL(img.src);
     };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+    img.onerror = reject; img.src = URL.createObjectURL(file);
   });
+}
+const urlCache = new Map();   // photoId -> { full, thumb } object URLs
+async function photoUrl(id, kind = "thumb") {
+  if (!id) return "";
+  if (!urlCache.has(id)) { const p = await db.get("photos", id); if (!p) return ""; urlCache.set(id, { full: URL.createObjectURL(p.full), thumb: URL.createObjectURL(p.thumb || p.full) }); }
+  return urlCache.get(id)[kind];
 }
 const blobToDataUrl = (b) => new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
+const dataUrlToBlob = async (d) => (await fetch(d)).blob();
 
-// ---------- data store: Supabase ----------
-const cfg = window.WINEDEX_CONFIG || {};
-const configured = cfg.SUPABASE_URL && !cfg.SUPABASE_URL.includes("YOUR-PROJECT") && cfg.SUPABASE_ANON_KEY && !cfg.SUPABASE_ANON_KEY.includes("YOUR-ANON");
-
-const supabaseStore = {
-  client: null,
-  init() { this.client = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY); },
-  async user() { const { data } = await this.client.auth.getUser(); return data.user; },
-  async signIn(email) {
-    const { error } = await this.client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } });
-    if (error) throw error;
-  },
-  async signOut() { await this.client.auth.signOut(); },
-  onAuth(cb) { this.client.auth.onAuthStateChange(() => cb()); },
-  // Everything the list views need: wines + all tastings (for averages, photos and the taste match).
-  async listAll() {
-    const [{ data: wines, error: e1 }, { data: tastings, error: e2 }] = await Promise.all([
-      this.client.from("wines").select("*").order("created_at", { ascending: false }),
-      this.client.from("tastings").select("id, wine_id, user_id, rating, photo_url, tags, created_at").order("created_at", { ascending: true }),
-    ]);
-    if (e1) throw e1; if (e2) throw e2;
-    return { wines, tastings };
-  },
-  async getWine(id) { const { data, error } = await this.client.from("wines").select("*").eq("id", id).single(); if (error) throw error; return data; },
-  async getTastings(wineId) { const { data, error } = await this.client.from("tastings").select("*").eq("wine_id", wineId).order("created_at", { ascending: false }); if (error) throw error; return data; },
-  // Reuse an existing wine with the same name/producer/vintage, otherwise create it.
-  async findOrCreateWine(w) {
-    const me = await this.user();
-    let q = this.client.from("wines").select("id").ilike("name", w.name.trim());
-    q = w.producer ? q.ilike("producer", w.producer.trim()) : q.is("producer", null);
-    q = w.vintage ? q.eq("vintage", w.vintage) : q.is("vintage", null);
-    const { data: found } = await q.limit(1);
-    if (found && found.length) return found[0].id;
-    const { data, error } = await this.client.from("wines").insert({ ...w, created_by: me.id }).select("id").single();
-    if (error) throw error; return data.id;
-  },
-  async uploadPhoto(blob) {
-    const me = await this.user();
-    const path = `${me.id}/${uid()}.jpg`;
-    const { error } = await this.client.storage.from(cfg.PHOTO_BUCKET).upload(path, blob, { contentType: "image/jpeg" });
-    if (error) throw error;
-    return this.client.storage.from(cfg.PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
-  },
-  async addTasting(t) { const me = await this.user(); const { error } = await this.client.from("tastings").insert({ ...t, user_id: me.id, taster_name: tasterName() }); if (error) throw error; },
-  async deleteTasting(id) { const { error } = await this.client.from("tastings").delete().eq("id", id); if (error) throw error; },
-};
-
-// ---------- data store: local demo (no backend) ----------
-// Same interface as supabaseStore, but keeps everything in localStorage, so the app can be tried before Supabase exists.
-const localStore = {
-  key: "winedex-demo",
-  load() { try { return JSON.parse(localStorage.getItem(this.key)) || { wines: [], tastings: [] }; } catch { return { wines: [], tastings: [] }; } },
-  save(d) { localStorage.setItem(this.key, JSON.stringify(d)); },
-  init() {},
-  async user() { return { id: "demo-user", email: "demo@local" }; },
-  async signIn() {}, async signOut() {}, onAuth() {},
-  async listAll() { const d = this.load(); return { wines: d.wines.slice().reverse(), tastings: d.tastings }; },
-  async getWine(id) { return this.load().wines.find((w) => w.id === id); },
-  async getTastings(wineId) { return this.load().tastings.filter((t) => t.wine_id === wineId).reverse(); },
-  async findOrCreateWine(w) {
-    const d = this.load();
-    const same = d.wines.find((x) => x.name.toLowerCase() === w.name.toLowerCase() && (x.producer || "").toLowerCase() === (w.producer || "").toLowerCase() && (x.vintage || null) === (w.vintage || null));
-    if (same) return same.id;
-    const wine = { ...w, id: uid(), created_by: "demo-user", created_at: new Date().toISOString() };
-    d.wines.push(wine); this.save(d); return wine.id;
-  },
-  async uploadPhoto(blob) { return blobToDataUrl(blob); },
-  async addTasting(t) { const d = this.load(); d.tastings.push({ ...t, id: uid(), user_id: "demo-user", taster_name: tasterName(), created_at: new Date().toISOString() }); this.save(d); },
-  async deleteTasting(id) { const d = this.load(); d.tastings = d.tastings.filter((t) => t.id !== id); this.save(d); },
-};
-
-const store = configured ? supabaseStore : localStore;
-store.init();
-
-// The display name shown next to your notes for other people (kept in this browser).
-function tasterName() {
-  let n = localStorage.getItem("winedex-name");
-  if (!n) { n = (prompt("What name should other tasters see next to your notes?") || "Anonymous").trim().slice(0, 40) || "Anonymous"; localStorage.setItem("winedex-name", n); }
-  return n;
-}
-
-// ---------- app state ----------
-const state = { user: null, wines: [], tastings: [], tab: "mine", query: "", typeFilter: "all", photoBlob: null, type: "red", rating: 4, tags: new Set() };
+// ---------- state & router ----------
+const state = { wines: [], tastings: [], tab: "cellar", query: "", sort: "recent", typeFilter: "all", photoBlob: null, type: "red", rating: 4, tags: new Set(), editing: null, prefillWine: null, deferredInstall: null };
 
 function show(view) {
-  ["auth", "list", "detail", "add"].forEach((v) => $("view-" + v).classList.toggle("hidden", v !== view));
-  $("nav").classList.toggle("hidden", view === "auth" || view === "add");
-  $("navMine").classList.toggle("active", view === "list" && state.tab === "mine");
-  $("navAll").classList.toggle("active", view === "list" && state.tab === "all");
+  ["cellar", "insights", "detail", "add", "settings"].forEach((v) => $("view-" + v).classList.toggle("hidden", v !== view));
+  $("nav").classList.toggle("hidden", view === "add" || view === "settings");
+  $("navCellar").classList.toggle("active", view === "cellar");
+  $("navInsights").classList.toggle("active", view === "insights");
   window.scrollTo(0, 0);
 }
+async function reload() { state.wines = await db.all("wines"); state.tastings = await db.all("tastings"); }
 
-// Build the per-wine summary used by the grid, the rows and the stats.
+// One summary object per wine: your notes, averages, photo, Pokédex number.
 function enrich() {
   const byWine = {};
-  state.tastings.forEach((t) => { (byWine[t.wine_id] = byWine[t.wine_id] || []).push(t); });
-  return state.wines.map((w) => {
-    const ts = byWine[w.id] || [];
-    const mine = ts.filter((t) => t.user_id === state.user.id);
-    const others = ts.filter((t) => t.user_id !== state.user.id);
-    return {
-      ...w, ts, mine, others,
-      myAvg: avg(mine.map((t) => Number(t.rating))), allAvg: avg(ts.map((t) => Number(t.rating))), othersAvg: avg(others.map((t) => Number(t.rating))),
-      tasters: new Set(ts.map((t) => t.user_id)).size,
-      photo: (mine.find((t) => t.photo_url) || ts.find((t) => t.photo_url) || {}).photo_url || "",
-      firstMine: mine.length ? mine[0].created_at : null,
-    };
+  state.tastings.forEach((t) => { (byWine[t.wineId] = byWine[t.wineId] || []).push(t); });
+  const list = state.wines.map((w) => {
+    const ts = (byWine[w.id] || []).sort((a, b) => (b.tastedAt || "").localeCompare(a.tastedAt || "") || b.createdAt.localeCompare(a.createdAt));
+    return { ...w, ts, myAvg: avg(ts.map((t) => Number(t.rating))), last: ts[0] || null, photoId: (ts.find((t) => t.photoId) || {}).photoId || null, spend: ts.reduce((a, t) => a + (Number(t.price) || 0), 0) };
   });
-}
-function numbers(list) { // Pokédex numbers follow the order you logged wines (oldest = #001)
-  const ordered = list.filter((w) => w.mine.length).sort((a, b) => new Date(a.firstMine) - new Date(b.firstMine));
-  return Object.fromEntries(ordered.map((w, i) => [w.id, "#" + String(i + 1).padStart(3, "0")]));
+  list.sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach((w, i) => (w.num = "#" + String(i + 1).padStart(3, "0")));
+  return list;
 }
 
-// ---------- list views ----------
-async function loadAll() {
-  try { const d = await store.listAll(); state.wines = d.wines; state.tastings = d.tastings; }
-  catch (e) { console.error(e); toast("Could not load wines: " + e.message); state.wines = []; state.tastings = []; }
-  renderList();
-}
+// ---------- cellar ----------
 function renderTypeFilters() {
   const all = [["all", "All", null], ...Object.entries(TYPES).map(([k, v]) => [k, v, typeColor(k)])];
   $("typeFilters").innerHTML = all.map(([k, v, c]) => `<button type="button" class="pill ${c ? "type" : ""} ${state.typeFilter === k ? "active" : ""}" data-f="${k}">${c ? `<i style="background:${c}"></i>` : ""}${v}</button>`).join("");
-  document.querySelectorAll("#typeFilters .pill").forEach((b) => b.onclick = () => { state.typeFilter = b.dataset.f; renderList(); });
+  document.querySelectorAll("#typeFilters .pill").forEach((b) => (b.onclick = () => { state.typeFilter = b.dataset.f; renderCellar(); }));
 }
-function renderList() {
+async function renderCellar() {
   const h = new Date().getHours();
-  $("greet").textContent = (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + (state.user && configured ? ", " + state.user.email.split("@")[0] : "");
+  $("greet").textContent = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   const list = enrich();
-  $("cellarPane").classList.toggle("hidden", state.tab !== "mine");
-  $("explorePane").classList.toggle("hidden", state.tab !== "all");
-  $("listTitle").textContent = state.tab === "mine" ? "My cellar" : "Explore";
-  if (state.tab === "mine") renderCellar(list); else renderExplore(list);
-}
-function renderCellar(list) {
-  const mine = list.filter((w) => w.mine.length);
-  $("stCount").textContent = mine.length;
-  $("stAvg").textContent = fmt1(avg(mine.map((w) => w.myAvg)));
-  $("stCountries").textContent = new Set(mine.map((w) => (w.country || "").trim().toLowerCase()).filter(Boolean)).size;
+  $("stCount").textContent = list.length;
+  $("stAvg").textContent = fmt1(avg(list.map((w) => w.myAvg).filter((x) => x != null)));
+  $("stCountries").textContent = new Set(list.map((w) => (w.country || "").trim().toLowerCase()).filter(Boolean)).size;
   renderTypeFilters();
-  const nums = numbers(list);
   const q = state.query.toLowerCase();
-  let shown = mine.filter((w) => state.typeFilter === "all" || w.wine_type === state.typeFilter);
+  let shown = list.filter((w) => state.typeFilter === "all" || w.type === state.typeFilter);
   if (q) shown = shown.filter((w) => [w.name, w.producer, w.grape, w.region, w.country].join(" ").toLowerCase().includes(q));
-  shown.sort((a, b) => new Date(b.firstMine) - new Date(a.firstMine));
-  $("emptyState").classList.toggle("hidden", shown.length > 0);
-  $("grid").innerHTML = shown.map((w) => `<button type="button" class="card" data-id="${w.id}">
-      <div class="photo" style="${w.photo ? `background-image:url('${w.photo}')` : ""}">
-        ${w.photo ? "" : bottleSvg(46, 120, "#1B0C10")}
-        <span class="num">${nums[w.id]}</span><span class="dot" style="background:${typeColor(w.wine_type)}"></span>
-      </div>
-      <div class="body"><span class="name">${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · ") || TYPES[w.wine_type])}</span>
-        <div class="scores"><b>${fmt1(w.myAvg)}</b><span>all ${fmt1(w.allAvg)} · ${w.ts.length}</span></div></div>
-    </button>`).join("");
-}
-function renderExplore(list) {
-  const withNotes = list.filter((w) => w.ts.length);
-  // Taste match: on wines both you and others rated, how often you land within half a star of the crowd.
-  const shared = withNotes.filter((w) => w.myAvg != null && w.othersAvg != null);
-  const agree = shared.filter((w) => Math.abs(w.myAvg - w.othersAvg) <= 0.5).length;
-  const pct = shared.length ? Math.round((agree / shared.length) * 100) : null;
-  const diffBy = (type) => { const s = shared.filter((w) => w.wine_type === type); return s.length ? avg(s.map((w) => w.myAvg - w.othersAvg)) : null; };
-  const parts = Object.keys(TYPES).map((t) => [t, diffBy(t)]).filter(([, d]) => d != null).map(([t, d]) => `${TYPES[t].toLowerCase()}s ${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(1)}`);
-  $("matchCard").innerHTML = `<div class="head">Your taste vs everyone<span>${shared.length} shared wine${shared.length === 1 ? "" : "s"}</span></div>
-    <div class="body"><div class="ring" style="background: conic-gradient(var(--gold) 0 ${pct ?? 0}%, var(--line-2) ${pct ?? 0}% 100%)"><div>${pct == null ? "–" : pct + "%"}</div></div>
-    <div><b>${pct == null ? "No shared wines yet" : pct >= 70 ? "You agree with the crowd" : pct >= 40 ? "You have your own taste" : "You go against the crowd"}</b>
-    <p>${pct == null ? "Log a wine that someone else has also logged to see how your palate compares." : parts.length ? "Compared with the average you rate " + parts.join(", ") + "." : "Within half a star of the crowd on " + agree + " of " + shared.length + " wines."}</p></div></div>`;
-  const rows = withNotes.slice().sort((a, b) => b.ts.length - a.ts.length || new Date(b.created_at) - new Date(a.created_at));
-  $("exploreCount").textContent = rows.length + " wine" + (rows.length === 1 ? "" : "s");
-  $("emptyExplore").classList.toggle("hidden", rows.length > 0);
-  const max = Math.max(1, ...rows.map((w) => w.tasters));
-  $("rows").innerHTML = rows.map((w) => {
-    const delta = w.myAvg == null || w.othersAvg == null ? null : w.myAvg - w.othersAvg;
-    return `<button type="button" class="row" data-id="${w.id}">
-      <div class="thumb" style="${w.photo ? `background-image:url('${w.photo}')` : ""}">${w.photo ? "" : bottleSvg(20, 56, "#1B0C10")}</div>
-      <div class="mid"><span class="name">${esc(w.name)}</span><span class="sub">${esc([w.producer, TYPES[w.wine_type], w.vintage].filter(Boolean).join(" · "))}</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px"><div class="bar" style="width:90px"><i style="width:${Math.round((w.tasters / max) * 100)}%"></i></div><span class="sub">${w.tasters} taster${w.tasters === 1 ? "" : "s"}</span></div></div>
-      <div class="right"><b>${fmt1(w.allAvg)}</b><span style="color:${delta == null ? "var(--muted)" : delta >= 0 ? "var(--ok)" : "var(--warn)"}">${delta == null ? (w.myAvg == null ? "not tried" : "only you") : "you " + (delta >= 0 ? "+" : "−") + Math.abs(delta).toFixed(1)}</span></div>
-    </button>`;
-  }).join("");
+  const sorters = { recent: (a, b) => ((b.last && b.last.createdAt) || "").localeCompare((a.last && a.last.createdAt) || ""), rating: (a, b) => (b.myAvg || 0) - (a.myAvg || 0), name: (a, b) => a.name.localeCompare(b.name), number: (a, b) => a.num.localeCompare(b.num) };
+  shown.sort(sorters[state.sort]);
+  $("emptyState").classList.toggle("hidden", shown.length > 0 || state.query || state.typeFilter !== "all");
+  const cards = await Promise.all(shown.map(async (w) => {
+    const photo = await photoUrl(w.photoId, "thumb");
+    return `<button type="button" class="card" data-id="${w.id}">
+      <div class="photo" style="${photo ? `background-image:url('${photo}')` : ""}">${photo ? "" : bottleSvg(46, 120, "#1B0C10")}<span class="num">${w.num}</span><span class="dot" style="background:${typeColor(w.type)}"></span></div>
+      <div class="body"><span class="name">${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · ") || TYPES[w.type])}</span>
+        <div class="scores"><b>${fmt1(w.myAvg)}</b><span>${w.ts.length} note${w.ts.length === 1 ? "" : "s"}</span></div></div></button>`;
+  }));
+  $("grid").innerHTML = cards.join("") || (shown.length === 0 && (state.query || state.typeFilter !== "all") ? `<p class="empty" style="grid-column:1/-1">Nothing matches.</p>` : "");
 }
 
-// ---------- detail view ----------
+// ---------- detail ----------
 async function openDetail(id) {
   show("detail");
-  $("view-detail").innerHTML = `<p class="meta" style="padding:80px 20px">Loading…</p>`;
-  try {
-    const [w, ts] = await Promise.all([store.getWine(id), store.getTastings(id)]);
-    const me = state.user.id;
-    const myTs = ts.filter((t) => t.user_id === me), others = ts.filter((t) => t.user_id !== me);
-    const myAvg = avg(myTs.map((t) => Number(t.rating))), allAvg = avg(ts.map((t) => Number(t.rating))), othersAvg = avg(others.map((t) => Number(t.rating)));
-    const photo = (myTs.find((t) => t.photo_url) || ts.find((t) => t.photo_url) || {}).photo_url;
-    const nums = numbers(enrich());
-    const tasters = new Set(ts.map((t) => t.user_id)).size;
-    // rating distribution 5..1
-    const counts = [5, 4, 3, 2, 1].map((s) => [s, ts.filter((t) => Math.round(Number(t.rating)) === s).length]);
-    const maxC = Math.max(1, ...counts.map((c) => c[1]));
-    // tag frequency
-    const tagCount = {};
-    ts.forEach((t) => (t.tags || []).forEach((g) => (tagCount[g] = (tagCount[g] || 0) + 1)));
-    const tags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    let verdict = "You are the first to log this wine — your note sets the benchmark.";
-    const n = others.length, s = n > 1 ? "s" : "";
-    if (myAvg != null && othersAvg != null) {
-      const d = myAvg - othersAvg;
-      verdict = Math.abs(d) < 0.3 ? `You and the other ${n} taster${s} agree on this one.` : d > 0 ? `You like it more than others do (+${d.toFixed(1)} vs ${n} other taster${s}).` : `Others enjoyed it more than you did (${d.toFixed(1)} vs ${n} other taster${s}).`;
-    } else if (myAvg == null && othersAvg != null) verdict = `${n} taster${s} logged this wine. Add your own note to compare.`;
-    const delta = myAvg != null && othersAvg != null ? myAvg - othersAvg : null;
-
-    const note = (t) => { const mine = t.user_id === me; return `<div class="note ${mine ? "mine" : ""}">
-      <div class="head"><span>${mine ? "You" : esc(t.taster_name)} <small>· ${fmtDate(t.tasted_at)}${t.place ? " · " + esc(t.place) : ""}</small></span><b>${fmt1(t.rating)}</b></div>
+  const w = enrich().find((x) => x.id === id);
+  if (!w) { show("cellar"); return; }
+  const ts = w.ts, best = ts.reduce((a, t) => (!a || Number(t.rating) > Number(a.rating) ? t : a), null);
+  const photo = await photoUrl(w.photoId, "full");
+  const tagCount = {}; ts.forEach((t) => (t.tags || []).forEach((g) => (tagCount[g] = (tagCount[g] || 0) + 1)));
+  const tags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const prices = ts.map((t) => Number(t.price)).filter((p) => p > 0);
+  const trend = ts.length > 1 ? Number(ts[0].rating) - Number(ts[ts.length - 1].rating) : 0;
+  const verdict = ts.length === 1 ? `Logged once, on ${fmtDate(ts[0].tastedAt)}. Log it again next time to see if your opinion changes.` : trend > 0 ? `You like this wine more each time (+${trend.toFixed(1)} since your first note).` : trend < 0 ? `Your rating has dropped ${Math.abs(trend).toFixed(1)} since your first note.` : `Consistent: you gave it the same score every time.`;
+  const noteHtml = (t) => `<div class="note">
+      <div class="head"><span>${fmtDate(t.tastedAt)}${t.place ? ` <small>· ${esc(t.place)}</small>` : ""}</span><b>${fmt1(t.rating)}</b></div>
       ${t.notes ? `<p>${esc(t.notes)}</p>` : `<p style="color:var(--muted)">No note.</p>`}
       ${(t.tags || []).length ? `<div class="tags">${t.tags.map((g) => `<span class="pill">${esc(g)}</span>`).join("")}</div>` : ""}
       ${t.price ? `<span class="extra">A$${Number(t.price).toFixed(2)}</span>` : ""}
-      ${mine ? `<button type="button" class="link" data-del="${t.id}" style="align-self:flex-start">Delete this note</button>` : ""}
-    </div>`; };
-
-    $("view-detail").innerHTML = `
-      <div class="hero">${photo ? `<img src="${photo}" alt="">` : bottleSvg(120, 340, "#1B0C10")}<div class="fade"></div>
-        <button type="button" class="back" id="backBtn" aria-label="Back"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-        ${nums[w.id] ? `<span class="num">${nums[w.id]}</span>` : ""}</div>
-      <div class="title-block">
-        <span class="badge"><i style="background:${typeColor(w.wine_type)}"></i>${TYPES[w.wine_type]}${w.grape ? " · " + esc(w.grape) : ""}</span>
-        <h2>${esc(w.name)}</h2>
-        <span class="meta">${esc([w.producer, w.vintage, [w.region, w.country].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span>
-      </div>
-      <div class="compare">
-        <div class="box mine"><span class="label">My rating</span><b>${fmt1(myAvg)}</b><span>${myTs.length} note${myTs.length === 1 ? "" : "s"}${myTs.length ? " · last " + fmtDate(myTs[0].tasted_at) : ""}</span></div>
-        <div class="box"><span class="label">Everyone</span><b>${fmt1(allAvg)}</b><span>${ts.length} note${ts.length === 1 ? "" : "s"} · ${tasters} taster${tasters === 1 ? "" : "s"}</span></div>
-      </div>
-      ${ts.length ? `<div class="panel"><div class="head">How everyone rated it${delta != null ? `<span>You: ${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(1)} ${delta >= 0 ? "above" : "below"}</span>` : ""}</div>
-        <div class="dist">${counts.map(([s, c]) => `<div><span class="l">${s}</span><div class="bar"><i style="width:${Math.round((c / maxC) * 100)}%;background:${s >= 4 ? "var(--gold)" : "#6E4A56"}"></i></div><span class="n">${c}</span></div>`).join("")}</div></div>` : ""}
-      ${tags.length ? `<div class="tagwrap"><span class="label">What people taste</span><div class="tags">${tags.map(([g, c]) => `<span class="pill">${esc(g)} · ${c}</span>`).join("")}</div></div>` : ""}
-      <div class="verdict">${verdict}</div>
-      <div class="notes"><div class="section-head" style="margin:0"><span class="label">Tasting notes</span><button type="button" class="link" id="logAgain">+ Log again</button></div>
-        ${ts.length ? ts.map(note).join("") : `<p class="meta">No notes yet.</p>`}</div>
-      <div style="height:30px"></div>`;
-
-    $("backBtn").onclick = () => { show("list"); loadAll(); };
-    $("logAgain").onclick = () => openAdd(w);
-    document.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
-      if (!confirm("Delete this note?")) return;
-      try { await store.deleteTasting(b.dataset.del); toast("Note deleted"); openDetail(id); } catch (e) { toast(e.message); }
-    });
-  } catch (e) { console.error(e); $("view-detail").innerHTML = `<p style="padding:80px 20px">${esc(e.message)}</p><button type="button" class="btn ghost" id="backBtn">Back</button>`; $("backBtn").onclick = () => show("list"); }
+      <div class="actions"><button type="button" class="link" data-edit="${t.id}">Edit</button><button type="button" class="link danger" data-del="${t.id}">Delete</button></div></div>`;
+  $("view-detail").innerHTML = `
+    <div class="hero">${photo ? `<img src="${photo}" alt="">` : bottleSvg(120, 340, "#1B0C10")}<div class="fade"></div>
+      <button type="button" class="back" id="backBtn" aria-label="Back"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="num">${w.num}</span>
+      <button type="button" class="more" id="moreBtn" aria-label="More"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>
+    <div class="title-block">
+      <span class="badge"><i style="background:${typeColor(w.type)}"></i>${TYPES[w.type]}${w.grape ? " · " + esc(w.grape) : ""}</span>
+      <h2>${esc(w.name)}</h2>
+      <span class="meta">${esc([w.producer, w.vintage, [w.region, w.country].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span></div>
+    <div class="compare">
+      <div class="box mine"><span class="label">Rating</span><b>${fmt1(w.myAvg)}</b><span>${ts.length} note${ts.length === 1 ? "" : "s"}</span></div>
+      <div class="box"><span class="label">Best</span><b>${fmt1(best && best.rating)}</b><span>${best ? fmtDate(best.tastedAt) : ""}</span></div>
+      <div class="box"><span class="label">Paid</span><b>${prices.length ? "$" + Math.round(avg(prices)) : "–"}</b><span>${prices.length ? "avg of " + prices.length : "no price"}</span></div></div>
+    ${tags.length ? `<div class="tagwrap"><span class="label">What you taste</span><div class="tags">${tags.map(([g, c]) => `<span class="pill">${esc(g)}${c > 1 ? " · " + c : ""}</span>`).join("")}</div></div>` : ""}
+    <div class="verdict">${verdict}</div>
+    <div class="notes"><div class="section-head" style="margin:0"><span class="label">Tasting notes</span><button type="button" class="link" id="logAgain">+ Log again</button></div>${ts.map(noteHtml).join("")}</div>
+    <div style="height:30px"></div>`;
+  $("backBtn").onclick = () => { show("cellar"); renderCellar(); };
+  $("logAgain").onclick = () => openLog({ wine: w });
+  $("moreBtn").onclick = () => sheet([
+    { label: "Edit wine details", fn: () => openLog({ wine: w, tasting: ts[0], editWineOnly: true }) },
+    { label: "Delete this wine and all its notes", danger: true, fn: async () => { if (!confirm(`Delete ${w.name} and ${ts.length} note(s)?`)) return; await deleteWine(w.id); toast("Wine deleted"); await reload(); show("cellar"); renderCellar(); } },
+  ]);
+  document.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => openLog({ wine: w, tasting: ts.find((t) => t.id === b.dataset.edit) })));
+  document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+    if (!confirm("Delete this note?")) return;
+    await deleteTasting(b.dataset.del); await reload(); toast("Note deleted");
+    if (state.tastings.some((t) => t.wineId === w.id)) openDetail(w.id); else { show("cellar"); renderCellar(); }
+  }));
+}
+function sheet(items) {
+  const el = document.createElement("div"); el.className = "sheet";
+  el.innerHTML = `<div>${items.map((it, i) => `<button type="button" class="${it.danger ? "danger" : ""}" data-i="${i}">${esc(it.label)}</button>`).join("")}<button type="button" data-i="-1">Cancel</button></div>`;
+  el.onclick = (e) => { const b = e.target.closest("button"); if (b) { const i = Number(b.dataset.i); el.remove(); if (i >= 0) items[i].fn(); } else if (e.target === el) el.remove(); };
+  document.body.appendChild(el);
+}
+async function deleteTasting(id) {
+  const t = await db.get("tastings", id); if (!t) return;
+  await db.del("tastings", id);
+  if (t.photoId && !(await db.all("tastings")).some((x) => x.photoId === t.photoId)) await db.del("photos", t.photoId);
+}
+async function deleteWine(id) {
+  for (const t of await db.byIndex("tastings", "wineId", id)) await deleteTasting(t.id);
+  await db.del("wines", id);
 }
 
-// ---------- log view ----------
+// ---------- log / edit ----------
 function renderTypePicker() {
   $("typePicker").innerHTML = Object.entries(TYPES).map(([k, v]) => `<button type="button" class="pill type ${k === state.type ? "active" : ""}" data-type="${k}"><i style="background:${typeColor(k)}"></i>${v}</button>`).join("");
-  document.querySelectorAll("#typePicker .pill").forEach((b) => b.onclick = () => { state.type = b.dataset.type; renderTypePicker(); });
+  document.querySelectorAll("#typePicker .pill").forEach((b) => (b.onclick = () => { state.type = b.dataset.type; renderTypePicker(); }));
 }
 function renderTagPicker() {
   $("tagPicker").innerHTML = TAGS.map((g) => `<button type="button" class="pill ${state.tags.has(g) ? "active" : ""}" data-tag="${g}">${g}</button>`).join("");
-  document.querySelectorAll("#tagPicker .pill").forEach((b) => b.onclick = () => { const g = b.dataset.tag; state.tags.has(g) ? state.tags.delete(g) : state.tags.add(g); renderTagPicker(); });
+  document.querySelectorAll("#tagPicker .pill").forEach((b) => (b.onclick = () => { const g = b.dataset.tag; state.tags.has(g) ? state.tags.delete(g) : state.tags.add(g); renderTagPicker(); }));
 }
 function renderStars() {
   const r = state.rating, half = r % 1 !== 0;
   $("stars").innerHTML = [1, 2, 3, 4, 5].map((n) => `<button type="button" data-n="${n}" aria-label="${n} star${n > 1 ? "s" : ""}" class="${n <= Math.floor(r) ? "on" : half && n === Math.ceil(r) ? "half" : ""}">${starSvg}</button>`).join("");
-  document.querySelectorAll("#stars button").forEach((b) => b.onclick = () => { state.rating = Number(b.dataset.n); renderStars(); });
-  $("halfToggle").classList.toggle("on", half);
-  $("halfToggle").textContent = half ? "− half star" : "+ half star";
-  $("ratingOut").textContent = r.toFixed(1);
-  $("ratingLabel").textContent = RATING_LABEL[r] || "";
-  const filled = state.photoBlob, named = $("fName").value.trim();
-  $("s2").classList.toggle("on", !!filled); $("sl2").classList.toggle("on", !!filled);
+  document.querySelectorAll("#stars button").forEach((b) => (b.onclick = () => { state.rating = Number(b.dataset.n); renderStars(); }));
+  $("halfToggle").classList.toggle("on", half); $("halfToggle").textContent = half ? "− half star" : "+ half star";
+  $("ratingOut").textContent = r.toFixed(1); $("ratingLabel").textContent = RATING_LABEL[r] || "";
+  const hasPhoto = !!state.photoBlob || !!(state.editing && state.editing.photoId), named = $("fName").value.trim();
+  $("s2").classList.toggle("on", hasPhoto); $("sl2").classList.toggle("on", hasPhoto);
   $("s3").classList.toggle("on", !!named); $("sl3").classList.toggle("on", !!named);
 }
-$("halfToggle").onclick = () => { state.rating = state.rating % 1 ? Math.floor(state.rating) : Math.min(5, state.rating + 0.5); if (state.rating > 5) state.rating = 5; renderStars(); };
-function openAdd(prefill) {
+$("halfToggle").onclick = () => { state.rating = state.rating % 1 ? Math.floor(state.rating) : Math.min(5, state.rating + 0.5); renderStars(); };
+async function openLog({ wine = null, tasting = null, editWineOnly = false } = {}) {
   $("addForm").reset();
-  state.photoBlob = null; state.type = (prefill && prefill.wine_type) || "red"; state.rating = 4; state.tags = new Set();
+  state.photoBlob = null; state.editing = tasting; state.prefillWine = wine; state.tags = new Set(tasting ? tasting.tags || [] : []);
+  state.type = (wine && wine.type) || "red"; state.rating = tasting ? Number(tasting.rating) : 4;
   $("photoBox").style.backgroundImage = ""; $("photoBox").classList.remove("has");
-  $("fDate").value = new Date().toISOString().slice(0, 10);
-  $("nextNum").textContent = "#" + String(Object.keys(numbers(enrich())).length + 1).padStart(3, "0");
-  if (prefill) { $("fName").value = prefill.name || ""; $("fProducer").value = prefill.producer || ""; $("fVintage").value = prefill.vintage || ""; $("fGrape").value = prefill.grape || ""; $("fCountry").value = prefill.country || ""; $("fRegion").value = prefill.region || ""; }
+  if (tasting && tasting.photoId) { const u = await photoUrl(tasting.photoId, "thumb"); if (u) { $("photoBox").style.backgroundImage = `url('${u}')`; $("photoBox").classList.add("has"); } }
+  $("fDate").value = tasting ? tasting.tastedAt || today() : today();
+  $("formTitle").textContent = tasting ? (editWineOnly ? "Edit wine" : "Edit note") : wine ? "Log again" : "Log a wine";
+  $("saveLabel").textContent = tasting ? "Save changes" : "Save to my cellar";
+  $("nextNum").textContent = wine ? wine.num : "#" + String(state.wines.length + 1).padStart(3, "0");
+  if (wine) { $("fName").value = wine.name || ""; $("fProducer").value = wine.producer || ""; $("fVintage").value = wine.vintage || ""; $("fGrape").value = wine.grape || ""; $("fCountry").value = wine.country || ""; $("fRegion").value = wine.region || ""; }
+  if (tasting) { $("fNotes").value = tasting.notes || ""; $("fPrice").value = tasting.price || ""; $("fPlace").value = tasting.place || ""; }
+  $("suggest").classList.add("hidden");
   renderTypePicker(); renderTagPicker(); renderStars();
   show("add");
 }
 $("photoInput").addEventListener("change", async (e) => {
   const f = e.target.files[0]; if (!f) return;
-  try {
-    state.photoBlob = await resizeImage(f);
-    $("photoBox").style.backgroundImage = `url('${URL.createObjectURL(state.photoBlob)}')`;
-    $("photoBox").classList.add("has");
-    renderStars();
-  } catch (err) { toast("Could not read that photo"); }
+  try { state.photoBlob = await resize(f, 1400, 0.82); $("photoBox").style.backgroundImage = `url('${URL.createObjectURL(state.photoBlob)}')`; $("photoBox").classList.add("has"); renderStars(); }
+  catch (err) { toast("Could not read that photo"); }
 });
-$("fName").addEventListener("input", renderStars);
-$("cancelAdd").onclick = () => show("list");
+// Autocomplete from wines you already logged — so the same bottle keeps one entry.
+$("fName").addEventListener("input", () => {
+  renderStars();
+  const q = $("fName").value.trim().toLowerCase(); const box = $("suggest");
+  if (q.length < 2 || state.editing || state.prefillWine) { box.classList.add("hidden"); return; }
+  const hits = state.wines.filter((w) => (w.name + " " + (w.producer || "")).toLowerCase().includes(q)).slice(0, 4);
+  box.classList.toggle("hidden", !hits.length);
+  box.innerHTML = hits.map((w) => `<button type="button" data-id="${w.id}">${esc(w.name)}<small>${esc([w.producer, w.vintage, TYPES[w.type]].filter(Boolean).join(" · "))} — already in your cellar</small></button>`).join("");
+  box.querySelectorAll("button").forEach((b) => (b.onclick = () => { const w = enrich().find((x) => x.id === b.dataset.id); openLog({ wine: w }); }));
+});
+$("cancelAdd").onclick = () => { if (state.prefillWine && state.prefillWine.id) openDetail(state.prefillWine.id); else { show("cellar"); renderCellar(); } };
 $("addForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = $("saveBtn"); btn.disabled = true;
   try {
-    const wine = {
-      name: $("fName").value.trim(), producer: $("fProducer").value.trim() || null,
-      vintage: $("fVintage").value ? Number($("fVintage").value) : null, wine_type: state.type,
-      grape: $("fGrape").value.trim() || null, country: $("fCountry").value.trim() || null, region: $("fRegion").value.trim() || null,
-    };
-    const wineId = await store.findOrCreateWine(wine);
-    const photo_url = state.photoBlob ? await store.uploadPhoto(state.photoBlob) : null;
-    await store.addTasting({
-      wine_id: wineId, rating: state.rating, notes: $("fNotes").value.trim() || null, photo_url, tags: [...state.tags],
-      price: $("fPrice").value ? Number($("fPrice").value) : null, place: $("fPlace").value.trim() || null, tasted_at: $("fDate").value || null,
-    });
-    toast("Saved to your cellar");
-    state.tab = "mine"; show("list"); await loadAll();
-  } catch (err) { console.error(err); toast("Could not save: " + err.message); }
+    const name = $("fName").value.trim(); if (!name) throw new Error("Give the wine a name");
+    const fields = { name, producer: $("fProducer").value.trim() || null, vintage: $("fVintage").value ? Number($("fVintage").value) : null, type: state.type, grape: $("fGrape").value.trim() || null, country: $("fCountry").value.trim() || null, region: $("fRegion").value.trim() || null };
+    // wine: update the one we came from, otherwise reuse a same-named wine, otherwise create
+    let wine = state.prefillWine ? await db.get("wines", state.prefillWine.id) : null;
+    if (!wine) wine = state.wines.find((w) => w.name.toLowerCase() === name.toLowerCase() && (w.producer || "").toLowerCase() === (fields.producer || "").toLowerCase() && (w.vintage || null) === (fields.vintage || null)) || null;
+    if (wine) { Object.assign(wine, fields); } else { wine = { id: uid(), ...fields, createdAt: new Date().toISOString() }; }
+    await db.put("wines", wine);
+    // photo
+    let photoId = state.editing ? state.editing.photoId || null : null;
+    if (state.photoBlob) { photoId = uid(); await db.put("photos", { id: photoId, full: state.photoBlob, thumb: await resize(state.photoBlob, 480, 0.75) }); }
+    const t = state.editing ? { ...state.editing } : { id: uid(), wineId: wine.id, createdAt: new Date().toISOString() };
+    Object.assign(t, { wineId: wine.id, rating: state.rating, notes: $("fNotes").value.trim() || null, tags: [...state.tags], photoId, price: $("fPrice").value ? Number($("fPrice").value) : null, place: $("fPlace").value.trim() || null, tastedAt: $("fDate").value || today() });
+    await db.put("tastings", t);
+    await reload();
+    toast(state.editing ? "Saved" : `Added as ${enrich().find((w) => w.id === wine.id).num}`);
+    openDetail(wine.id);
+  } catch (err) { console.error(err); toast(err.message || "Could not save"); }
   finally { btn.disabled = false; }
 });
 
-// ---------- navigation & auth ----------
-function setTab(t) { state.tab = t; show("list"); renderList(); }
-$("navMine").onclick = () => setTab("mine"); $("navAll").onclick = () => setTab("all");
-$("navAdd").onclick = () => { if (state.user) openAdd(); };
-$("search").addEventListener("input", (e) => { state.query = e.target.value; renderList(); });
-$("grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id); });
-$("rows").addEventListener("click", (e) => { const c = e.target.closest(".row"); if (c) openDetail(c.dataset.id); });
-$("authBtn").onclick = async () => {
-  const email = $("authEmail").value.trim(); if (!email) return;
-  $("authBtn").disabled = true;
-  try { await store.signIn(email); $("authMsg").textContent = "Check your email and tap the link to sign in."; }
-  catch (e) { $("authMsg").textContent = e.message; }
-  finally { $("authBtn").disabled = false; }
-};
-$("userChip").onclick = async () => {
-  if (!state.user) return;
-  if (confirm(configured ? "Sign out?" : "Change the name shown on your notes?")) {
-    if (configured) await store.signOut(); else { localStorage.removeItem("winedex-name"); tasterName(); }
-  }
-};
-
-async function boot() {
-  $("demoBanner").classList.toggle("hidden", !!configured);
-  state.user = await store.user();
-  if (!state.user) { show("auth"); return; }
-  $("userChip").textContent = configured ? state.user.email[0].toUpperCase() : "W";
-  show("list"); await loadAll();
+// ---------- insights ----------
+function renderInsights() {
+  const list = enrich(), ts = state.tastings;
+  const el = $("insights");
+  if (!list.length) { el.innerHTML = `<div class="empty"><b>No data yet.</b><br>Log a few wines and this page fills up with your taste profile.</div>`; return; }
+  const byType = Object.keys(TYPES).map((k) => [TYPES[k], list.filter((w) => w.type === k).length]).filter((x) => x[1]);
+  const maxT = Math.max(...byType.map((x) => x[1]));
+  const byCountry = {}; list.forEach((w) => { const c = (w.country || "").trim(); if (c) byCountry[c] = (byCountry[c] || 0) + 1; });
+  const countries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 6); const maxC = Math.max(1, ...countries.map((x) => x[1]));
+  const top = list.filter((w) => w.myAvg != null).sort((a, b) => b.myAvg - a.myAvg).slice(0, 3);
+  const spend = ts.reduce((a, t) => a + (Number(t.price) || 0), 0), priced = ts.filter((t) => Number(t.price) > 0);
+  const bestValue = list.filter((w) => w.myAvg >= 4 && w.spend > 0).sort((a, b) => a.spend / a.ts.length - b.spend / b.ts.length)[0];
+  // last 12 months
+  const months = []; const now = new Date();
+  for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const key = d.toISOString().slice(0, 7); months.push({ key, label: d.toLocaleDateString("en-AU", { month: "narrow" }), n: ts.filter((t) => (t.tastedAt || "").startsWith(key)).length }); }
+  const maxM = Math.max(1, ...months.map((m) => m.n));
+  const typesCollected = new Set(list.map((w) => w.type)).size;
+  const pct = Math.round((typesCollected / Object.keys(TYPES).length) * 100);
+  const tagCount = {}; ts.forEach((t) => (t.tags || []).forEach((g) => (tagCount[g] = (tagCount[g] || 0) + 1)));
+  const topTags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  el.innerHTML = `
+    <div class="panel" style="margin-top:18px"><div class="head">Collection progress<span>${typesCollected} of ${Object.keys(TYPES).length} types</span></div>
+      <div class="ring-row"><div class="ring" style="background: conic-gradient(var(--gold) 0 ${pct}%, var(--line-2) ${pct}% 100%)"><div>${pct}%</div></div>
+      <div><b>${pct === 100 ? "Full set collected" : typesCollected >= 4 ? "Half-way to the full set" : "Just getting started"}</b><p>${list.length} wine${list.length === 1 ? "" : "s"} · ${ts.length} note${ts.length === 1 ? "" : "s"} · ${Object.keys(byCountry).length} countr${Object.keys(byCountry).length === 1 ? "y" : "ies"}${spend ? ` · A$${Math.round(spend)} logged` : ""}</p></div></div>
+      <div class="badges">${Object.entries(TYPES).map(([k, v]) => `<span class="badge-chip ${list.some((w) => w.type === k) ? "on" : ""}"><i class="dot" style="position:static;box-shadow:none;background:${typeColor(k)};width:8px;height:8px"></i>${v}</span>`).join("")}</div></div>
+    <div class="panel"><div class="head">By type</div><div class="bars">${byType.map(([l, n]) => `<div><span class="l">${l}</span><div class="bar"><i style="width:${Math.round((n / maxT) * 100)}%"></i></div><span class="n">${n}</span></div>`).join("")}</div></div>
+    ${countries.length ? `<div class="panel"><div class="head">By country</div><div class="bars">${countries.map(([l, n]) => `<div><span class="l">${esc(l)}</span><div class="bar"><i style="width:${Math.round((n / maxC) * 100)}%"></i></div><span class="n">${n}</span></div>`).join("")}</div></div>` : ""}
+    <div class="panel"><div class="head">Last 12 months<span>${ts.length} note${ts.length === 1 ? "" : "s"}</span></div><div class="months">${months.map((m) => `<div><em><i style="height:${Math.round((m.n / maxM) * 100)}%"></i></em><span>${m.label}</span></div>`).join("")}</div></div>
+    ${topTags.length ? `<div class="panel"><div class="head">What you taste most</div><div class="tags">${topTags.map(([g, c]) => `<span class="pill">${esc(g)} · ${c}</span>`).join("")}</div></div>` : ""}
+    <div class="section-head"><span class="label">Top rated</span></div>
+    <div class="rows">${top.map((w) => `<button type="button" class="row" data-id="${w.id}"><div class="thumb" data-photo="${w.photoId || ""}">${w.photoId ? "" : bottleSvg(20, 56, "#1B0C10")}</div><div class="mid"><span class="name">${w.num} ${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · "))}</span></div><div class="right"><b>${fmt1(w.myAvg)}</b></div></button>`).join("")}</div>
+    ${bestValue ? `<div class="verdict" style="margin-top:14px">Best value so far: <b style="color:var(--text)">${esc(bestValue.name)}</b> — ${fmt1(bestValue.myAvg)} stars for about A$${Math.round(bestValue.spend / bestValue.ts.length)}.</div>` : ""}
+    ${priced.length ? `<div class="verdict">You paid on average A$${Math.round(avg(priced.map((t) => Number(t.price))))} a bottle across ${priced.length} priced note${priced.length === 1 ? "" : "s"}.</div>` : ""}`;
+  el.querySelectorAll("[data-photo]").forEach(async (d) => { if (d.dataset.photo) d.style.backgroundImage = `url('${await photoUrl(d.dataset.photo, "thumb")}')`; });
+  el.querySelectorAll(".row").forEach((r) => (r.onclick = () => openDetail(r.dataset.id)));
 }
-store.onAuth(boot);
-boot();
 
-// Offline shell (PWA) – registers the small service worker if the browser supports it.
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+// ---------- settings: backup / restore / erase ----------
+$("exportBtn").onclick = async () => {
+  const photos = await db.all("photos");
+  const out = { app: "winedex", version: 1, exportedAt: new Date().toISOString(), wines: state.wines, tastings: state.tastings, photos: [] };
+  for (const p of photos) out.photos.push({ id: p.id, full: await blobToDataUrl(p.full) });
+  const blob = new Blob([JSON.stringify(out)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `wine-dex-backup-${today()}.json`; document.body.appendChild(a); a.click(); a.remove();
+  toast(`Backup ready: ${state.wines.length} wines, ${photos.length} photos`);
+};
+$("importInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app !== "winedex") throw new Error("That is not a Wine Dex backup");
+    const haveW = new Set(state.wines.map((w) => w.id)), haveT = new Set(state.tastings.map((t) => t.id));
+    let nw = 0, nt = 0;
+    for (const p of data.photos || []) if (!(await db.get("photos", p.id))) { const full = await dataUrlToBlob(p.full); await db.put("photos", { id: p.id, full, thumb: await resize(full, 480, 0.75) }); }
+    for (const w of data.wines || []) if (!haveW.has(w.id)) { await db.put("wines", w); nw++; }
+    for (const t of data.tastings || []) if (!haveT.has(t.id)) { await db.put("tastings", t); nt++; }
+    await reload(); toast(`Restored ${nw} wines and ${nt} notes`); show("cellar"); renderCellar();
+  } catch (err) { toast(err.message || "Could not restore"); }
+  e.target.value = "";
+});
+$("wipeBtn").onclick = async () => {
+  if (!confirm("Erase ALL wines, notes and photos from this device?")) return;
+  if (!confirm("Last chance — this cannot be undone. Erase everything?")) return;
+  await db.clear("tastings"); await db.clear("wines"); await db.clear("photos"); urlCache.clear();
+  await reload(); toast("Cellar erased"); show("cellar"); renderCellar();
+};
+$("settingsBtn").onclick = async () => {
+  show("settings");
+  try { const est = await navigator.storage.estimate(); $("storageInfo").textContent = `Using ${(est.usage / 1048576).toFixed(1)} MB on this device.`; } catch { $("storageInfo").textContent = ""; }
+};
+$("closeSettings").onclick = () => { show("cellar"); renderCellar(); };
+
+// ---------- navigation ----------
+$("navCellar").onclick = () => { state.tab = "cellar"; show("cellar"); renderCellar(); };
+$("navInsights").onclick = () => { state.tab = "insights"; show("insights"); renderInsights(); };
+$("navAdd").onclick = () => openLog();
+$("search").addEventListener("input", (e) => { state.query = e.target.value; renderCellar(); });
+$("sort").addEventListener("change", (e) => { state.sort = e.target.value; renderCellar(); });
+$("grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id); });
+
+// ---------- install prompt (Android/desktop Chrome; iOS uses Share → Add to Home Screen) ----------
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); state.deferredInstall = e; if (!localStorage.getItem("winedex-install-dismissed")) $("installTip").classList.remove("hidden"); });
+$("installBtn").onclick = async () => { if (state.deferredInstall) { state.deferredInstall.prompt(); await state.deferredInstall.userChoice; } $("installTip").classList.add("hidden"); localStorage.setItem("winedex-install-dismissed", "1"); };
+
+// ---------- boot ----------
+(async function boot() {
+  try { await db.open(); } catch (e) { document.body.innerHTML = `<p style="padding:40px 24px;color:#F0A3B2">This browser does not allow local storage (private mode?). Wine Dex needs it to keep your cellar on the device.</p>`; return; }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
+  await reload();
+  show("cellar"); renderCellar();
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
 </script>
 </body>
 </html>
