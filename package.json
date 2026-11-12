@@ -1,0 +1,12 @@
+{
+  "name": "wine-dex",
+  "version": "2.1.0",
+  "private": true,
+  "description": "A local-first wine journal that runs as an installable PWA.",
+  "scripts": {
+    "check": "node --test tests/smoke.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

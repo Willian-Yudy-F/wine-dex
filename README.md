@@ -1,5 +1,7 @@
 # 🍷 Wine Dex
 
+[![CI](https://github.com/Willian-Yudy-F/wine-dex/actions/workflows/ci.yml/badge.svg)](https://github.com/Willian-Yudy-F/wine-dex/actions/workflows/ci.yml)
+
 **A Pokédex for wine — and it lives entirely on your phone.** Photograph the bottle, rate it, write what you tasted, and build your own numbered collection. No account, no server, no tracking: every wine, note and photo is stored in your device's own database and never leaves it.
 
 **Open it:** https://willian-yudy-f.github.io/wine-dex/ — then *Add to Home Screen* and it works like an app, offline.
@@ -45,6 +47,10 @@ photos    (id, full: Blob, thumb: Blob)
 
 ## Run it locally
 Any static server works — for example `python3 -m http.server 8000` in this folder, then open `http://localhost:8000`. Your data stays in that browser's IndexedDB.
+
+## Quality checks
+
+Run `npm run check` to validate the inline JavaScript, essential UI controls, installable PWA icons and offline app shell. The same checks run automatically in GitHub Actions for every push and pull request.
 
 ## Design
 Designed first as four phone artboards in Claude Design, then built by hand: dark cellar ground `#140A0E`, gold accent `#D9B36A`, wine red `#B8304A`, Fraunces for display type and Manrope for text, inline SVG icons, 44 px touch targets.
