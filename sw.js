@@ -1,7 +1,7 @@
 // Minimal service worker: caches the app shell so it opens offline.
 // Everything the app needs is cached; data lives in IndexedDB.
-const CACHE = "winedex-shell-v2";
-const SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg"];
+const CACHE = "winedex-shell-v3";
+const SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -4,11 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#140A0E">
+<meta name="color-scheme" content="dark">
 <meta name="description" content="Wine Dex — a Pokédex for wine. Photograph the bottle, rate it, keep your notes. Everything stays on your phone.">
-<title>Wine Dex</title>
+<meta name="author" content="Willian Yudy Futema">
+<link rel="canonical" href="https://willian-yudy-f.github.io/wine-dex/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wine Dex — Your local-first wine journal">
+<meta property="og:description" content="Photograph bottles, record tasting notes and build a private wine collection that stays on your device.">
+<meta property="og:url" content="https://willian-yudy-f.github.io/wine-dex/">
+<meta property="og:image" content="https://willian-yudy-f.github.io/wine-dex/docs/cellar.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<title>Wine Dex — Local-first wine journal</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,12 +37,14 @@
   h1, h2 { font-family: var(--serif); margin: 0; font-weight: 600; letter-spacing: -0.4px; }
   button, input, select, textarea { font: inherit; }
   button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   input::placeholder, textarea::placeholder { color: #7A6368; }
   .hidden { display: none !important; }
   main { max-width: 720px; margin: 0 auto; }
   svg { flex: 0 0 auto; }
   .view { animation: fade .18s ease-out; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .view { animation: none; } }
 
   .top { padding: calc(18px + env(safe-area-inset-top)) 20px 0; display: flex; align-items: flex-end; justify-content: space-between; }
   .eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; display: block; }
@@ -243,8 +254,8 @@
   <section id="view-add" class="view hidden">
     <form id="addForm" autocomplete="off">
       <div class="form-head"><button type="button" class="link" id="cancelAdd" style="color:var(--muted)">Cancel</button><h2 id="formTitle">Log a wine</h2><span class="num" id="nextNum">#001</span></div>
-      <div class="steps"><i class="on"></i><i id="s2"></i><i id="s3"></i></div>
-      <div class="steps-l label"><span class="on">Photo</span><span id="sl2">Wine</span><span id="sl3">My note</span></div>
+      <div class="steps" id="formSteps"><i class="on"></i><i id="s2"></i><i id="s3"></i></div>
+      <div class="steps-l label" id="formStepLabels"><span class="on">Photo</span><span id="sl2">Wine</span><span id="sl3">My note</span></div>
 
       <div class="capture" id="photoBox">
         <div class="cam"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
@@ -267,14 +278,14 @@
         <div class="field"><label class="label" for="fRegion">Region</label><input id="fRegion" placeholder="Barossa Valley"></div>
       </div>
 
-      <div class="rating">
+      <div class="rating" id="tastingRating">
         <span class="label">My rating</span>
         <div class="stars" id="stars"></div>
         <div class="val"><b id="ratingOut">4.0</b><span id="ratingLabel">Really good</span></div>
         <button type="button" class="half-toggle" id="halfToggle">+ half star</button>
       </div>
 
-      <div class="fields">
+      <div class="fields" id="tastingFields">
         <div class="field"><span class="label">What do you taste?</span><div class="tags" id="tagPicker"></div></div>
         <div class="field"><label class="label" for="fNotes">My note</label><textarea id="fNotes" placeholder="Smell, taste, finish. What did you pair it with? Would you buy again?"></textarea></div>
         <div class="two">
@@ -389,7 +400,7 @@ const blobToDataUrl = (b) => new Promise((res) => { const r = new FileReader(); 
 const dataUrlToBlob = async (d) => (await fetch(d)).blob();
 
 // ---------- state & router ----------
-const state = { wines: [], tastings: [], tab: "cellar", query: "", sort: "recent", typeFilter: "all", photoBlob: null, type: "red", rating: 4, tags: new Set(), editing: null, prefillWine: null, deferredInstall: null };
+const state = { wines: [], tastings: [], tab: "cellar", query: "", sort: "recent", typeFilter: "all", photoBlob: null, type: "red", rating: 4, tags: new Set(), editing: null, editWineOnly: false, prefillWine: null, deferredInstall: null };
 
 function show(view) {
   ["cellar", "insights", "detail", "add", "settings"].forEach((v) => $("view-" + v).classList.toggle("hidden", v !== view));
@@ -434,7 +445,7 @@ async function renderCellar() {
   $("emptyState").classList.toggle("hidden", shown.length > 0 || state.query || state.typeFilter !== "all");
   const cards = await Promise.all(shown.map(async (w) => {
     const photo = await photoUrl(w.photoId, "thumb");
-    return `<button type="button" class="card" data-id="${w.id}">
+    return `<button type="button" class="card" data-id="${esc(w.id)}">
       <div class="photo" style="${photo ? `background-image:url('${photo}')` : ""}">${photo ? "" : bottleSvg(46, 120, "#1B0C10")}<span class="num">${w.num}</span><span class="dot" style="background:${typeColor(w.type)}"></span></div>
       <div class="body"><span class="name">${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · ") || TYPES[w.type])}</span>
         <div class="scores"><b>${fmt1(w.myAvg)}</b><span>${w.ts.length} note${w.ts.length === 1 ? "" : "s"}</span></div></div></button>`;
@@ -459,7 +470,7 @@ async function openDetail(id) {
       ${t.notes ? `<p>${esc(t.notes)}</p>` : `<p style="color:var(--muted)">No note.</p>`}
       ${(t.tags || []).length ? `<div class="tags">${t.tags.map((g) => `<span class="pill">${esc(g)}</span>`).join("")}</div>` : ""}
       ${t.price ? `<span class="extra">A$${Number(t.price).toFixed(2)}</span>` : ""}
-      <div class="actions"><button type="button" class="link" data-edit="${t.id}">Edit</button><button type="button" class="link danger" data-del="${t.id}">Delete</button></div></div>`;
+      <div class="actions"><button type="button" class="link" data-edit="${esc(t.id)}">Edit</button><button type="button" class="link danger" data-del="${esc(t.id)}">Delete</button></div></div>`;
   $("view-detail").innerHTML = `
     <div class="hero">${photo ? `<img src="${photo}" alt="">` : bottleSvg(120, 340, "#1B0C10")}<div class="fade"></div>
       <button type="button" class="back" id="backBtn" aria-label="Back"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -499,7 +510,12 @@ function sheet(items) {
 async function deleteTasting(id) {
   const t = await db.get("tastings", id); if (!t) return;
   await db.del("tastings", id);
-  if (t.photoId && !(await db.all("tastings")).some((x) => x.photoId === t.photoId)) await db.del("photos", t.photoId);
+  if (t.photoId && !(await db.all("tastings")).some((x) => x.photoId === t.photoId)) {
+    await db.del("photos", t.photoId);
+    const urls = urlCache.get(t.photoId);
+    if (urls) Object.values(urls).forEach(URL.revokeObjectURL);
+    urlCache.delete(t.photoId);
+  }
 }
 async function deleteWine(id) {
   for (const t of await db.byIndex("tastings", "wineId", id)) await deleteTasting(t.id);
@@ -528,17 +544,18 @@ function renderStars() {
 $("halfToggle").onclick = () => { state.rating = state.rating % 1 ? Math.floor(state.rating) : Math.min(5, state.rating + 0.5); renderStars(); };
 async function openLog({ wine = null, tasting = null, editWineOnly = false } = {}) {
   $("addForm").reset();
-  state.photoBlob = null; state.editing = tasting; state.prefillWine = wine; state.tags = new Set(tasting ? tasting.tags || [] : []);
+  state.photoBlob = null; state.editing = tasting; state.editWineOnly = editWineOnly; state.prefillWine = wine; state.tags = new Set(tasting ? tasting.tags || [] : []);
   state.type = (wine && wine.type) || "red"; state.rating = tasting ? Number(tasting.rating) : 4;
   $("photoBox").style.backgroundImage = ""; $("photoBox").classList.remove("has");
   if (tasting && tasting.photoId) { const u = await photoUrl(tasting.photoId, "thumb"); if (u) { $("photoBox").style.backgroundImage = `url('${u}')`; $("photoBox").classList.add("has"); } }
   $("fDate").value = tasting ? tasting.tastedAt || today() : today();
-  $("formTitle").textContent = tasting ? (editWineOnly ? "Edit wine" : "Edit note") : wine ? "Log again" : "Log a wine";
-  $("saveLabel").textContent = tasting ? "Save changes" : "Save to my cellar";
+  $("formTitle").textContent = editWineOnly ? "Edit wine" : tasting ? "Edit note" : wine ? "Log again" : "Log a wine";
+  $("saveLabel").textContent = editWineOnly ? "Save wine details" : tasting ? "Save changes" : "Save to my cellar";
   $("nextNum").textContent = wine ? wine.num : "#" + String(state.wines.length + 1).padStart(3, "0");
   if (wine) { $("fName").value = wine.name || ""; $("fProducer").value = wine.producer || ""; $("fVintage").value = wine.vintage || ""; $("fGrape").value = wine.grape || ""; $("fCountry").value = wine.country || ""; $("fRegion").value = wine.region || ""; }
   if (tasting) { $("fNotes").value = tasting.notes || ""; $("fPrice").value = tasting.price || ""; $("fPlace").value = tasting.place || ""; }
   $("suggest").classList.add("hidden");
+  ["formSteps", "formStepLabels", "photoBox", "tastingRating", "tastingFields"].forEach((id) => $(id).classList.toggle("hidden", editWineOnly));
   renderTypePicker(); renderTagPicker(); renderStars();
   show("add");
 }
@@ -554,7 +571,7 @@ $("fName").addEventListener("input", () => {
   if (q.length < 2 || state.editing || state.prefillWine) { box.classList.add("hidden"); return; }
   const hits = state.wines.filter((w) => (w.name + " " + (w.producer || "")).toLowerCase().includes(q)).slice(0, 4);
   box.classList.toggle("hidden", !hits.length);
-  box.innerHTML = hits.map((w) => `<button type="button" data-id="${w.id}">${esc(w.name)}<small>${esc([w.producer, w.vintage, TYPES[w.type]].filter(Boolean).join(" · "))} — already in your cellar</small></button>`).join("");
+  box.innerHTML = hits.map((w) => `<button type="button" data-id="${esc(w.id)}">${esc(w.name)}<small>${esc([w.producer, w.vintage, TYPES[w.type]].filter(Boolean).join(" · "))} — already in your cellar</small></button>`).join("");
   box.querySelectorAll("button").forEach((b) => (b.onclick = () => { const w = enrich().find((x) => x.id === b.dataset.id); openLog({ wine: w }); }));
 });
 $("cancelAdd").onclick = () => { if (state.prefillWine && state.prefillWine.id) openDetail(state.prefillWine.id); else { show("cellar"); renderCellar(); } };
@@ -569,12 +586,22 @@ $("addForm").addEventListener("submit", async (e) => {
     if (!wine) wine = state.wines.find((w) => w.name.toLowerCase() === name.toLowerCase() && (w.producer || "").toLowerCase() === (fields.producer || "").toLowerCase() && (w.vintage || null) === (fields.vintage || null)) || null;
     if (wine) { Object.assign(wine, fields); } else { wine = { id: uid(), ...fields, createdAt: new Date().toISOString() }; }
     await db.put("wines", wine);
+    if (state.editWineOnly) {
+      await reload(); toast("Wine details saved"); openDetail(wine.id); return;
+    }
     // photo
-    let photoId = state.editing ? state.editing.photoId || null : null;
+    const oldPhotoId = state.editing ? state.editing.photoId || null : null;
+    let photoId = oldPhotoId;
     if (state.photoBlob) { photoId = uid(); await db.put("photos", { id: photoId, full: state.photoBlob, thumb: await resize(state.photoBlob, 480, 0.75) }); }
     const t = state.editing ? { ...state.editing } : { id: uid(), wineId: wine.id, createdAt: new Date().toISOString() };
     Object.assign(t, { wineId: wine.id, rating: state.rating, notes: $("fNotes").value.trim() || null, tags: [...state.tags], photoId, price: $("fPrice").value ? Number($("fPrice").value) : null, place: $("fPlace").value.trim() || null, tastedAt: $("fDate").value || today() });
     await db.put("tastings", t);
+    if (oldPhotoId && oldPhotoId !== photoId && !(await db.all("tastings")).some((x) => x.photoId === oldPhotoId)) {
+      await db.del("photos", oldPhotoId);
+      const urls = urlCache.get(oldPhotoId);
+      if (urls) Object.values(urls).forEach(URL.revokeObjectURL);
+      urlCache.delete(oldPhotoId);
+    }
     await reload();
     toast(state.editing ? "Saved" : `Added as ${enrich().find((w) => w.id === wine.id).num}`);
     openDetail(wine.id);
@@ -612,7 +639,7 @@ function renderInsights() {
     <div class="panel"><div class="head">Last 12 months<span>${ts.length} note${ts.length === 1 ? "" : "s"}</span></div><div class="months">${months.map((m) => `<div><em><i style="height:${Math.round((m.n / maxM) * 100)}%"></i></em><span>${m.label}</span></div>`).join("")}</div></div>
     ${topTags.length ? `<div class="panel"><div class="head">What you taste most</div><div class="tags">${topTags.map(([g, c]) => `<span class="pill">${esc(g)} · ${c}</span>`).join("")}</div></div>` : ""}
     <div class="section-head"><span class="label">Top rated</span></div>
-    <div class="rows">${top.map((w) => `<button type="button" class="row" data-id="${w.id}"><div class="thumb" data-photo="${w.photoId || ""}">${w.photoId ? "" : bottleSvg(20, 56, "#1B0C10")}</div><div class="mid"><span class="name">${w.num} ${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · "))}</span></div><div class="right"><b>${fmt1(w.myAvg)}</b></div></button>`).join("")}</div>
+    <div class="rows">${top.map((w) => `<button type="button" class="row" data-id="${esc(w.id)}"><div class="thumb" data-photo="${esc(w.photoId || "")}">${w.photoId ? "" : bottleSvg(20, 56, "#1B0C10")}</div><div class="mid"><span class="name">${w.num} ${esc(w.name)}</span><span class="sub">${esc([w.producer, w.vintage].filter(Boolean).join(" · "))}</span></div><div class="right"><b>${fmt1(w.myAvg)}</b></div></button>`).join("")}</div>
     ${bestValue ? `<div class="verdict" style="margin-top:14px">Best value so far: <b style="color:var(--text)">${esc(bestValue.name)}</b> — ${fmt1(bestValue.myAvg)} stars for about A$${Math.round(bestValue.spend / bestValue.ts.length)}.</div>` : ""}
     ${priced.length ? `<div class="verdict">You paid on average A$${Math.round(avg(priced.map((t) => Number(t.price))))} a bottle across ${priced.length} priced note${priced.length === 1 ? "" : "s"}.</div>` : ""}`;
   el.querySelectorAll("[data-photo]").forEach(async (d) => { if (d.dataset.photo) d.style.backgroundImage = `url('${await photoUrl(d.dataset.photo, "thumb")}')`; });
